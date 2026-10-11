@@ -241,7 +241,7 @@ Not in the patch (follow-ups): live thumbnails, AI audio/vision taps and the Rob
 
 ## Migration
 
-`node scripts/migrate-from-live.js --live-db <snapshot> [--apply] [--slots 12,31] [--checklist out.md]` reads a **read-only snapshot** of Live's database (production: `/opt/openvibe.live/data/live.db`; the snapshot commands are in [docs/cutover.md](docs/cutover.md) B2), imports `managed_streams` as stream definitions (owner = `linked_accounts.subject_id`, recording mode/visibility from the slot and channel, refs `live:managed_stream` + `live:user`, `mirror_to_live` on) and their `restream_destinations` (keys sealed), and prints a per-channel cutover checklist. **No old key is imported**: each imported slot gets a new key nobody has seen; the broadcaster rotates to get one. Every source row is recorded in `migration_map` as imported, held (no subject yet; a private-host URL — kept disabled with the key sealed; unbound destination of a multi-slot user) or excluded (banned account), with the reason. Dry run by default; idempotent (`test/migration.test.js`).
+`node scripts/migrate-from-live.js --live-db env:/etc/openvibe/live.env [--apply] [--slots 12,31] [--checklist out.md]` reads Live's PostgreSQL database (`ov_live`) in one **read-only transaction**, with the `DATABASE_URL` it takes from Live's env file and never prints (the production commands are in [docs/cutover.md](docs/cutover.md)), imports `managed_streams` as stream definitions (owner = `linked_accounts.subject_id`, recording mode/visibility from the slot and channel, refs `live:managed_stream` + `live:user`, `mirror_to_live` on) and their `restream_destinations` (keys sealed), and prints a per-channel cutover checklist. **No old key is imported**: each imported slot gets a new key nobody has seen; the broadcaster rotates to get one. Every source row is recorded in `migration_map` as imported, held (no subject yet; a private-host URL — kept disabled with the key sealed; unbound destination of a multi-slot user) or excluded (banned account), with the reason. Dry run by default; idempotent (`test/migration.test.js`).
 
 ## Cutover runbook
 
@@ -257,7 +257,7 @@ the checks and the rollback for every step. In short:
   opens 1936/tcp at the provider edge. Set `OPENRE_URL`, `OPENRE_PUBLIC_URL` and
   `OPENRE_EVENTS_SECRET` in Live, run `scripts/subscribe-live-events.js`, and restart Live. Then
   rehearse with a test slot and a real destination.
-- **Per slot:** the broadcaster's window, a Live snapshot, `migrate-from-live.js --apply --slots <id>`,
+- **Per slot:** the broadcaster's window, `migrate-from-live.js --apply --slots <id>` (it reads Live's database read-only),
   `PUT /api/admin/openre/managed/<id>/ingest-authority` (owner, admin session), and Regenerate in
   OBS. The broadcaster also rotates their personal key (hazard H4).
 - **Rollback:** per slot, `{"authority":"live"}` plus `scripts/set-definition-state.js --state disabled`.
