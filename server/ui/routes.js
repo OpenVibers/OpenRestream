@@ -15,6 +15,7 @@
  */
 const crypto = require('crypto');
 const ovServe = require('openvibe-shared/serve');
+const seo = require('openvibe-shared/seo');
 const frame = require('openvibe-shared/frame');
 const showcase = require('openvibe-shared/showcase');
 const express = require('express');
@@ -27,6 +28,10 @@ const { REASONS: LIVE_REASONS } = require('../live-link');
 // A channel URL comes from Live's answer; only an http(s) URL becomes a link.
 const httpUrl = (u) => (/^https?:\/\/[^\s"'<>]+$/.test(String(u || '')) ? String(u) : null);
 const pill = (state) => `<span class="pill ${esc(state)}">${esc(state)}</span>`;
+
+// The front page's description reaches the <meta>, og:*/twitter:* and the softwareApp JSON-LD from
+// one place (server/ui/layout.js clips it to 160 for the meta tags).
+const FRONT_PAGE_DESCRIPTION = 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free, open source, no follower minimum.';
 
 function csrfFor(token) { return crypto.createHash('sha256').update(`openre-csrf:${token}`).digest('hex').slice(0, 32); }
 
@@ -94,7 +99,11 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
         const mine = signedIn ? await store.definitions.list({ owner_subject: req.caller.subject }) : [];
         page(req, res, {
             canonicalPath: '/', robots: 'index,follow', styles: [showcase.STYLESHEET],
-            description: 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free, open source, no follower minimum.',
+            description: FRONT_PAGE_DESCRIPTION,
+            // Structured data for the front page only: the site is a web application (openre.stream).
+            jsonLd: [seo.jsonLd.softwareApp({
+                name: 'OpenRestream', url: `${config.baseUrl}/`, description: FRONT_PAGE_DESCRIPTION, category: 'MultimediaApplication',
+            })],
             body: `${frontPage(config)}
 ${signedIn ? `<h2>Your streams</h2>${mine.length ? await streamTable(mine) : '<p class="muted">No streams yet.</p>'}<p><a href="/streams">Manage streams</a></p>` : '<p><a href="/auth/login?next=/streams">Sign in with OpenVibe</a> to manage your streams.</p>'}
 ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' })}`,
