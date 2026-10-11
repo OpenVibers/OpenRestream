@@ -4,7 +4,8 @@
 // OpenRestream does today. All three come from openvibe-shared/seo, the shared toolkit.
 const assert = require('assert');
 const seo = require('openvibe-shared/seo');
-const { bootApi, request, suite } = require('./helpers');
+const social = require('openvibe-shared/social');
+const { bootApi, request, suite, userToken, OWNER } = require('./helpers');
 
 const t = suite('discovery');
 
@@ -54,7 +55,7 @@ t('llms.txt is plain text, leads with open restreaming (OpenVibe Live on by defa
 });
 
 t('the front page leads with open restreaming, links to Live for browser go-live, and says what runs here', async () => {
-    const api = await bootApi({});
+    const api = await bootApi({ env: { BASE_URL: 'https://openre.stream' } });
     try {
         const r = await request(api.base, 'GET', '/');
         assert.strictEqual(r.status, 200);
@@ -66,9 +67,46 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         assert.match(r.text, /Going live from a browser happens on OpenVibe\.Live for now/);
         assert.match(r.text, /href="\/shared\/showcase\.css\?v=[0-9a-f]{12}"/);
         assert.strictEqual((r.text.match(/<h1[ >]/g) || []).length, 1, 'one h1');
+        // The SEO head (openvibe-shared/seo): the front page is shareable and machine-readable.
+        assert.match(r.text, /<meta property="og:title" content="OpenRestream — go live once, stream everywhere">/);
+        assert.match(r.text, /<meta name="twitter:card" content="summary_large_image">/);
+        assert.match(r.text, /<meta property="og:image" content="https:\/\/openre\.stream\/shared\/social\/openre\.jpg\?v=[0-9a-f]{12}">/);
+        const ld = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(r.text);
+        assert.ok(ld, 'a JSON-LD script is present');
+        const app = JSON.parse(ld[1]);
+        assert.strictEqual(app['@type'], 'WebApplication');
+        assert.strictEqual(app.name, 'OpenRestream');
+        assert.strictEqual(app.applicationCategory, 'MultimediaApplication');
     } finally {
         await api.close();
     }
 });
+
+t('the signed-in owner pages stay noindex and carry no og:image or JSON-LD', async () => {
+    const api = await bootApi({});
+    try {
+        const r = await request(api.base, 'GET', '/streams', { cookie: `ov_token=${userToken({ subjectId: OWNER })}` });
+        assert.strictEqual(r.status, 200);
+        assert.match(r.text, /<meta name="robots" content="noindex,nofollow">/);
+        assert.ok(!r.text.includes('og:image'), 'no share image on a private page');
+        assert.ok(!r.text.includes('application/ld+json'), 'no JSON-LD on a private page');
+    } finally {
+        await api.close();
+    }
+});
+
+t('the site serves its own pinned share card at /shared/social/openre.jpg', async () => {
+    const api = await bootApi({});
+    try {
+        const card = social.url('openre');
+        assert.ok(card && card.startsWith('/shared/social/openre.jpg?v='), 'the card has a content-addressed URL');
+        const r = await request(api.base, 'GET', card);
+        assert.strictEqual(r.status, 200);
+        assert.match(r.headers.get('content-type'), /^image\/jpeg/);
+    } finally {
+        await api.close();
+    }
+});
+
 
 t.run();

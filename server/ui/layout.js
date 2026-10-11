@@ -1,9 +1,16 @@
 'use strict';
 const ovServe = require('openvibe-shared/serve');
+const seo = require('openvibe-shared/seo');
+const social = require('openvibe-shared/social');
 /**
  * Page shell for openre.stream: server-rendered HTML that works without JavaScript, with the shared
  * OpenVibe Frame (theme loader, navbar and footer from openvibe.network, footer SSR from the
  * pinned openvibe-shared release) the way OpenVibe.Community renders it.
+ *
+ * The <head>'s SEO tags (title, description, canonical, robots, og:*, twitter:* and JSON-LD) come
+ * from openvibe-shared/seo, so every OpenVibe site emits the same, consistently clipped fields. The
+ * public, indexable pages share the site's card (openvibe-shared/social) and may carry JSON-LD; the
+ * signed-in owner pages (/streams, /sessions, …) stay noindex and get neither an image nor JSON-LD.
  */
 const NETWORK_URL = 'https://openvibe.network';
 const SITE = 'OpenRestream';
@@ -36,8 +43,21 @@ main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
 
 const DESCRIPTION = 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free and open source.';
 
-function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,nofollow', config, description = DESCRIPTION, styles = [] }) {
+function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,nofollow', config, description = DESCRIPTION, styles = [], jsonLd = null }) {
     const pageTitle = title ? `${title} · ${SITE}` : `${SITE} — go live once, stream everywhere`;
+    const canonical = config.baseUrl + canonicalPath;
+    // Indexable (public) pages are the only ones a crawler shares: they carry the site's card and,
+    // where the route supplies one, JSON-LD. The signed-in owner pages stay noindex with neither.
+    const indexable = /^\s*index/i.test(String(robots));
+    const seoHead = seo.headTags({
+        title: pageTitle,
+        description,
+        canonical,
+        siteName: SITE,
+        robots,
+        image: indexable ? social.url('openre') : null,
+        jsonLd: indexable ? jsonLd : null,
+    });
     const nav = {
         service: 'openre',
         apiBase: NETWORK_URL,
@@ -61,10 +81,7 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(pageTitle)}</title>
-<meta name="description" content="${esc(description)}">
-<meta name="robots" content="${esc(robots)}">
-<link rel="canonical" href="${esc(config.baseUrl + canonicalPath)}">
+${seoHead}
 ${icon}
 <script src="${ovServe.url('theme-loader.js')}" defer></script>
 <style>${CSS}</style>
