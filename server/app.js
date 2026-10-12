@@ -159,7 +159,7 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
 
     app.use('/auth', createSsoRoutes({ config, auth, fetchImpl }));
     // Crawl and machine-readability artifacts (robots.txt, sitemap.xml, llms.txt): openvibe-shared/seo.
-    app.use('/', createDiscoveryRoutes({ config }));
+    app.use('/', createDiscoveryRoutes({ config, releaseLastmod: release.full().released_at === release.full().booted_at ? undefined : release.full().released_at }));
     app.use('/', createUiRouter({ rt, auth, limits: actorLimits, liveLink }));
 
     app.use((req, res) => contracts.http.sendProblem(res, 404, 'openre.not_found', { detail: `no route ${req.method} ${req.path}`, ctx: req.ov }));
