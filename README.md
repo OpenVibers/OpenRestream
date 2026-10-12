@@ -291,9 +291,9 @@ one slot. Status on 2026-09-23: OpenRestream is deployed (`655b98a10aaa`) and DN
 
 ## Launch rule
 
-This repository does not make the product real, and the domain keeps its placeholder page on
+This repository does not make the product real, and the domain kept its placeholder page on
 [OpenVibers/OpenVibe.Sites](https://github.com/OpenVibers/OpenVibe.Sites) until all of the
-following exist here (plan §12.12): an owning runtime with health/readiness endpoints and
+following existed here (plan §12.12): an owning runtime with health/readiness endpoints and
 observability; canonical identity/auth integration; server-rendered public routes useful without
 JavaScript; real persistence and end-to-end workflows; capability and event registration against
 `OpenVibe.Contracts`; a migration/seed strategy, a security/threat review, and
