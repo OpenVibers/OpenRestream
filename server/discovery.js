@@ -19,7 +19,7 @@ const seo = require('openvibe-shared/seo');
 const PUBLIC_PATHS = ['/', '/updates'];
 const DISALLOW = ['/streams', '/sessions', '/destinations', '/auth/', '/api/', '/play/'];
 
-function createDiscoveryRoutes({ config }) {
+function createDiscoveryRoutes({ config, releaseLastmod }) {
     const router = express.Router();
     const abs = (p) => seo.absolute(p, config.baseUrl);
 
@@ -27,7 +27,7 @@ function createDiscoveryRoutes({ config }) {
         seo.robotsTxt({ sitemaps: [abs('/sitemap.xml')], disallow: DISALLOW })));
 
     router.get('/sitemap.xml', (_req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders()).send(
-        seo.sitemapXml(PUBLIC_PATHS.map((loc) => ({ loc: abs(loc) })))));
+        seo.sitemapXml(PUBLIC_PATHS.map((loc) => ({ loc: abs(loc), lastmod: releaseLastmod })))));
 
     router.get('/llms.txt', (_req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(
         seo.llmsTxt({

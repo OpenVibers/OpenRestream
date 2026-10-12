@@ -3,6 +3,17 @@
 // names the sitemap, sitemap.xml lists the public pages including /, and llms.txt describes what
 // OpenRestream does today. All three come from openvibe-shared/seo, the shared toolkit.
 const assert = require('assert');
+
+function assertSitemapLastmods(xml, tag = 'url') {
+    const entries = [...xml.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'g'))];
+    for (const [, body] of entries) {
+        const match = /<lastmod>(\d{4}-\d{2}-\d{2})<\/lastmod>/.exec(body);
+        assert.ok(match, body);
+        assert.strictEqual(new Date(match[1]).toISOString().slice(0, 10), match[1]);
+    }
+    return entries;
+}
+
 const seo = require('openvibe-shared/seo');
 const social = require('openvibe-shared/social');
 const { bootApi, request, suite, userToken, OWNER } = require('./helpers');
@@ -31,6 +42,7 @@ t('sitemap.xml is XML and lists the public pages, including /', async () => {
         assert.match(r.headers.get('content-type'), /xml/);
         assert.ok(r.text.includes(`<loc>${seo.absolute('/', api.config.baseUrl)}</loc>`), 'lists /');
         assert.ok(r.text.includes(`<loc>${seo.absolute('/updates', api.config.baseUrl)}</loc>`), 'lists /updates');
+        assert.strictEqual(assertSitemapLastmods(r.text).length, 2);
     } finally {
         await api.close();
     }
