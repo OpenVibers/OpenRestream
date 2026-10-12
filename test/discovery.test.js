@@ -77,6 +77,12 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         assert.strictEqual(app['@type'], 'WebApplication');
         assert.strictEqual(app.name, 'OpenRestream');
         assert.strictEqual(app.applicationCategory, 'MultimediaApplication');
+        // The questions, as a visible list and as FAQPage JSON-LD; the OBS settings name the ingest server.
+        const all = [...r.text.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+        const faq = all.find((x) => x['@type'] === 'FAQPage');
+        assert.ok(faq && faq.mainEntity.length >= 5, 'FAQPage JSON-LD');
+        assert.ok(faq.mainEntity.every((q) => r.text.includes(`<summary>${q.name.replace(/'/g, '&#39;')}</summary>`) || r.text.includes(`<summary>${q.name}</summary>`)), 'every JSON-LD question is on the page');
+        assert.match(r.text, /Server: +rtmp:\/\/[^\s<]+\/live/);
     } finally {
         await api.close();
     }
