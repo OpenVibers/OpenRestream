@@ -26,6 +26,8 @@ main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
 .ore h1{font-size:1.6rem;margin:.2em 0 .4em}.ore h2{font-size:1.15rem;margin:1.6em 0 .6em}.ore h3{font-size:1rem;margin:1em 0 .4em}
 .ore a{color:#93c5fd}.ore p.muted,.ore .muted{color:var(--ore-muted)}
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
+.ore-faq details{border-bottom:1px solid var(--ore-line);padding:.75rem 0}.ore-faq details:first-of-type{border-top:1px solid var(--ore-line)}
+.ore-faq summary{cursor:pointer;font-weight:600;list-style-position:inside}.ore-faq summary:hover{color:#93c5fd}.ore-faq details p{margin:.5rem 0 0;color:var(--ore-muted);max-width:46rem}
 .ore table{width:100%;border-collapse:collapse;font-size:.92rem}.ore th,.ore td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--ore-line);vertical-align:top}
 .ore code,.ore .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88rem;word-break:break-all}
 .ore .secret{display:block;background:#0a0f18;border:1px dashed var(--ore-warn);padding:10px;border-radius:8px;user-select:all}

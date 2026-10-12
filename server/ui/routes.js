@@ -33,6 +33,16 @@ const pill = (state) => `<span class="pill ${esc(state)}">${esc(state)}</span>`;
 // one place (server/ui/layout.js clips it to 160 for the meta tags).
 const FRONT_PAGE_DESCRIPTION = 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free, open source, no follower minimum.';
 
+// The front page's questions, answered from what OpenRestream does today (README): shown as a list and as FAQPage JSON-LD.
+const FRONT_FAQ = [
+    { q: 'Is OpenRestream free?', a: 'Yes. Any OpenVibe account can restream from the first minute, with no follower, subscriber or eligibility minimum. The code is open source (AGPL-3.0).' },
+    { q: 'Which platforms can I stream to?', a: 'Any platform that takes RTMP, RTMPS or SRT: Twitch, YouTube, Kick and others. Add each destination\'s server and key once; every destination has its own health, logs and retries.' },
+    { q: 'Does OpenRestream re-encode my stream?', a: 'Not for a stream sent from OBS or another RTMP encoder: it is copied to every destination as it arrives, so each platform gets the quality you sent.' },
+    { q: 'Can I go live without OBS?', a: 'Yes. On OpenVibe.Live you can go live from your browser, with nothing to install and no follower minimum.' },
+    { q: 'Are my keys safe?', a: 'Your OpenRestream stream key is shown once and stored only as a hash; rotate it any time. Destination keys and SRT passphrases are encrypted (AES-256-GCM), the API only ever shows their last four characters, and logged command lines are redacted.' },
+    { q: 'Does my stream also appear on OpenVibe Live?', a: 'By default, yes: every stream also goes live on your openvibe.live channel with chat, clips and VODs. Switch it off for any stream.' },
+];
+
 function csrfFor(token) { return crypto.createHash('sha256').update(`openre-csrf:${token}`).digest('hex').slice(0, 32); }
 
 function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
@@ -103,7 +113,7 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
             // Structured data for the front page only: the site is a web application (openre.stream).
             jsonLd: [seo.jsonLd.softwareApp({
                 name: 'OpenRestream', url: `${config.baseUrl}/`, description: FRONT_PAGE_DESCRIPTION, category: 'MultimediaApplication',
-            })],
+            }), seo.jsonLd.faq(FRONT_FAQ)],
             body: `${frontPage(config)}
 ${signedIn ? `<h2>Your streams</h2>${mine.length ? await streamTable(mine) : '<p class="muted">No streams yet.</p>'}<p><a href="/streams">Manage streams</a></p>` : '<p><a href="/auth/login?next=/streams">Sign in with OpenVibe</a> to manage your streams.</p>'}
 ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' })}`,
@@ -115,6 +125,13 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
      * default (owner, 2026-10-09). It says that RTMP ingest and RTMP/RTMPS/SRT restreaming run here, and that going live
      * from a browser happens on OpenVibe.Live for now (the WebRTC and JSMPEG workers are ported but not deployed).
      */
+    // What streamers paste into OBS (config.rtmp.publicHost/publicPort): rtmp://<host>[:port]/live.
+    const ingestServer = (cfg) => {
+        const r = cfg.rtmp || {};
+        const host = r.publicHost || 'ingest.openre.stream';
+        return `rtmp://${host}${r.publicPort && Number(r.publicPort) !== 1935 ? `:${r.publicPort}` : ''}/live`;
+    };
+
     function frontPage(cfg) {
         const live = cfg.liveUrl;
         return showcase.hero({
@@ -145,7 +162,13 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
                 { title: 'Add destinations', text: 'The server and key of each platform you also stream to. Test each one before you go live.' },
                 { title: 'Go live from OBS', text: 'Every destination, and your OpenVibe Live channel, shows its health while you stream.' },
             ],
-        });
+        }) + showcase.code({
+            title: 'OBS settings',
+            lede: 'In OBS, open Settings → Stream, choose Custom, and paste the server and the key from your stream\'s page.',
+            samples: [{ label: 'Settings → Stream', code: `Service:     Custom...\nServer:      ${ingestServer(cfg)}\nStream Key:  (from your stream's page, shown once)` }],
+        }) + `<section class="sc-sec ore-faq" aria-labelledby="ore-faq-h"><h2 id="ore-faq-h">Questions</h2>
+${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
+</section>`;
     }
 
     async function streamTable(list) {
