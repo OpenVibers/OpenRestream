@@ -11,7 +11,7 @@ at a time (ADR-009). Every step says who does it, how to check it, and how to un
   `deploy/scripts/deploy.sh`; Events `server/api/subscriptions.js`. The production facts (paths,
   grants, subscriptions, listeners) were read on the host on 2026-09-23, without changing anything.
 
-## Where things stand (2026-09-23)
+## Where things stand (2026-09-23; launch update 2026-10-13)
 
 This is the read-only preflight, run on the host against the deployed release `655b98a10aaa`:
 
@@ -37,6 +37,16 @@ firewall (ufw) is inactive. The Network grants are already in place:
 `[live, openre.stream.read|stream.write|key.rotate|session.read, openvibe.openre]`,
 `[live, events.subscription.manage, openvibe.events]` and `[openre, events.event.publish, openvibe.events]`.
 All 102 Live slots have `ingest_authority = 'live'`.
+
+**Update 2026-10-13 (launch 2026-10-09).** The site launched on 2026-10-09, the same day as the
+security review whose fixes it carries (README, "Launch rule"): `deploy/nginx/openre.stream.conf` is
+installed, the OpenVibe.Sites placeholder is gone, and B0 (a) is done — broadcasters manage
+destinations at `https://openre.stream/streams/<id>`. Two things have not moved. No slot has
+switched yet: all 102 Live slots still carry `ingest_authority = 'live'` and B1–B6 have not run.
+And production runs only the `openre-rtmp-ingest@<sha>` and `openre-restream-worker@<sha>`
+generations; the `openre-jsmpeg` and `openre-webrtc` units exist and `deploy.sh workers` starts all
+four, but those two are not enabled in production — they come up with the JSMPEG and WebRTC sections
+below (J-A, W-A).
 
 ## Tools
 
@@ -92,7 +102,8 @@ pf --only release,env,db                      # current = $SHA, it contains 6dc7
 - **nginx:** `6dc78a5` changes only `deploy/nginx/openre.stream.conf`, and that file is not installed.
   `/etc/nginx/sites-available/openre.stream.conf` is still the OpenVibe.Sites placeholder (launch
   rule, README). The release carries the fix, and no nginx action is needed. See B0 for when the
-  vhost gets installed.
+  vhost gets installed. (Resolved 2026-10-09: the vhost went in with the site launch and the
+  placeholder is gone — see "Where things stand".)
 - **Undo:** `sudo /opt/openre.stream/releases/655b98a10aaa/deploy/scripts/deploy.sh api 655b98a10aaa`.
   Do not run `deploy.sh prune` until the cutover is done, so the old release stays on disk.
 
@@ -205,10 +216,10 @@ refuses that user's personal RTMP key (`refusesLiveIngest`).
    RTMP slot on the Go Live page (for example "openre-rehearsal"). In that slot's restream settings,
    add **one real destination** with plain `rtmp://`, for example a private or unlisted YouTube
    stream: `rtmp://a.rtmp.youtube.com/live2` and its key. Add it before step 2 so that the migration
-   imports it, key sealed. After the switch, Live refuses restream edits for the slot (409), and the
-   openre.stream UI is not public yet (B0). Avoid Twitch for the rehearsal: Twitch is rewritten to
-   `rtmps://`, and this host has no OpenSSL ffmpeg (`OPENRE_FFMPEG_OPENSSL_PATH` is unset). Tell the
-   agent the slot id.
+   imports it, key sealed. After the switch, Live refuses restream edits for the slot (409); the
+   openre.stream UI answers them instead (public since B0 (a), 2026-10-09). Avoid Twitch for the
+   rehearsal: Twitch is rewritten to `rtmps://`, and this host has no OpenSSL ffmpeg
+   (`OPENRE_FFMPEG_OPENSSL_PATH` is unset). Tell the agent the slot id.
 2. **AGENT:** migrate that slot (commands in B2), then `pf --only slot --slot <id>`.
 3. **OWNER:** switch it with `await api('/admin/openre/managed/<id>/ingest-authority', { method: 'PUT', body: { authority: 'openre' } })`.
    On the Go Live page, press **Regenerate stream key**. The OpenRestream key is shown once. In OBS, set
@@ -242,9 +253,14 @@ refuses that user's personal RTMP key (`refusesLiveIngest`).
 
 ### B0. Before the first broadcaster's slot (OWNER decision)
 
+**Done — option (a), 2026-10-09.** The openre.stream UI launched with the security review's fixes,
+the vhost is installed and the OpenVibe.Sites placeholder is gone (README, "Launch rule"). Destinations
+are managed at https://openre.stream/streams/<id>, so (b) never applies. The H4 rotations below
+still run, per slot, at B3/B5.
+
 - **Where broadcasters manage restream destinations after the switch.** Live answers 409 with
-  `manage_url` (https://openre.stream/streams/<id>) to any restream edit for a switched slot, and
-  openre.stream still serves the Sites placeholder. Choose one:
+  `manage_url` (https://openre.stream/streams/<id>) to any restream edit for a switched slot. Choose
+  one — (a) was taken on 2026-10-09:
   - (a) Launch the openre.stream UI: install `deploy/nginx/openre.stream.conf` from the release to
     `/etc/nginx/sites-available/openre.stream.conf`, run `nginx -t`, reload, and remove the entry
     from OpenVibe.Sites. The certificate and the OAuth client `openre` with redirect
@@ -446,8 +462,8 @@ the steps in this order: the worker refuses to start without `MEDIASOUP_ANNOUNCE
    (10200/10300). Keep a copy first: `sudo cp -p /etc/openvibe/openre.env /etc/openvibe/openre.env.pre-webrtc`.
 3. **Edge (OWNER).** `ingest.openre.stream` stays the DNS-only (grey cloud) record RTMP uses. Open
    443/tcp (already open for the sites) and 10200–10300/udp at the provider edge.
-4. **Vhost (AGENT).** Until the openre.stream UI is launched (B0 (a)), install only the ingest
-   section of the release's file, then test and reload:
+4. **Vhost (AGENT).** The sites vhost went in with the launch (B0 (a), 2026-10-09), so install only
+   the ingest section of the release's file, then test and reload:
    ```
    R=/opt/openre.stream/releases/<sha>
    sed -n '/^## >>> ingest.openre.stream/,/^## <<< ingest.openre.stream/p' $R/deploy/nginx/openre.stream.conf \
@@ -510,5 +526,5 @@ the steps in this order: the worker refuses to start without `MEDIASOUP_ANNOUNCE
 | A6 | AGENT | full `pf` | all PASS, port MANUAL on host + PASS off host |
 | A7 | **OWNER** + AGENT | rehearsal: test account, slot, real destination; migrate; switch; OBS; deploys during the broadcast | A7 step 4 |
 | C | AGENT | ovhost inventory + first `ovhost drill openre` | drill passed |
-| B0 | **OWNER** | decide on the openre.stream UI; H4 fallback rotations | — |
+| B0 | **OWNER** | openre.stream UI: **(a) done 2026-10-09** — launched, Sites placeholder gone, destinations at openre.stream; H4 fallback rotations | B0 |
 | B1–B6 | **OWNER** + broadcaster + AGENT | per slot: window, migrate, switch, regenerate, personal key, test | `pf --only slot --slot <id>`, B6 |
