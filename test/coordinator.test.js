@@ -8,12 +8,14 @@ const { createWorkerRuntime } = require('../workers/runtime');
 
 const t = suite('coordinator');
 const dir = tmpDir();
+const RESET = ['output_logs', 'outputs', 'recordings', 'ingest_sessions', 'stream_definitions', 'workers', 'event_outbox', 'leases'];
 
 async function setup() {
     const clock = manualClock();
     const rt = await runtime({ clock, dir });
-    // Every case starts with fresh rows, while helpers.testDb reuses the migrated database.
-    await rt.db.prepare('TRUNCATE TABLE stream_definitions, workers, event_outbox, leases, output_logs RESTART IDENTITY CASCADE').run();
+    // Every case starts with fresh rows, while helpers.testDb reuses the migrated database. DELETE, child
+    // tables first: the pg store's runtime role has DML only, not TRUNCATE.
+    for (const table of RESET) await rt.db.prepare(`DELETE FROM ${table}`).run();
     const coordinator = createCoordinator({ rt, media: null, log: silent });
     const { definition, key } = await rt.store.definitions.create({ owner_subject: OWNER });
     const worker = async (kind) => { const w = await rt.store.workers.register({ kind, endpoints: { flvPort: 19361, rtmpPlayPort: 19360 } }); await rt.store.workers.ready(w.id); return await rt.store.workers.get(w.id); };
