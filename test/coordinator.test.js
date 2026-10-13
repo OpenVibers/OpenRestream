@@ -2,15 +2,18 @@
 // Session coordinator: generations and draining, lost workers, lease expiry, output assignment to
 // the newest restream generation, drain-deadline handover and the single-coordinator lease.
 const assert = require('assert');
-const { runtime, manualClock, suite, OWNER, outboxTypes, silent } = require('./helpers');
+const { runtime, manualClock, suite, OWNER, outboxTypes, silent, tmpDir } = require('./helpers');
 const { createCoordinator } = require('../server/coordinator');
 const { createWorkerRuntime } = require('../workers/runtime');
 
 const t = suite('coordinator');
+const dir = tmpDir();
 
 async function setup() {
     const clock = manualClock();
-    const rt = await runtime({ clock });
+    const rt = await runtime({ clock, dir });
+    // Every case starts with fresh rows, while helpers.testDb reuses the migrated database.
+    await rt.db.prepare('TRUNCATE TABLE stream_definitions, workers, event_outbox, leases, output_logs RESTART IDENTITY CASCADE').run();
     const coordinator = createCoordinator({ rt, media: null, log: silent });
     const { definition, key } = await rt.store.definitions.create({ owner_subject: OWNER });
     const worker = async (kind) => { const w = await rt.store.workers.register({ kind, endpoints: { flvPort: 19361, rtmpPlayPort: 19360 } }); await rt.store.workers.ready(w.id); return await rt.store.workers.get(w.id); };
