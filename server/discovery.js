@@ -41,7 +41,7 @@ function createDiscoveryRoutes({ config, releaseLastmod }) {
                 'Going live, as it runs today:',
                 '- From a browser, with nothing to install: on OpenVibe.Live (https://openvibe.live, the Go Live button; guide at https://openvibe.live/docs/go-live-in-your-browser). There is no follower, subscriber or eligibility threshold.',
                 '- With an encoder such as OBS: RTMP to rtmp://ingest.openre.stream:1936/live with the stream key OpenRestream shows once when the stream is created. Any signed-in OpenVibe account can create a stream.',
-                '- Browser WebRTC (WHIP, RFC 9725) and JSMPEG ingest are ported to OpenRestream and tested, but their workers do not run in production yet; until they do, OpenVibe.Live serves them.',
+                '- Browser WebRTC: WHIP (RFC 9725) to https://ingest.openre.stream/whip/<ingest key>, open to browsers (CORS), on OpenRestream\'s WebRTC worker with its SFU for viewers. OpenVibe.Bot\'s robots and phones publish their cameras there. JSMPEG ingest runs on its own worker too. OpenVibe.Live\'s Go Live button keeps its own WHIP endpoint.',
                 '',
                 'Restream: a session can fan out to several RTMP and SRT destinations at once, with per-output health, logs, backoff and a rapid-crash circuit breaker. Recording: OpenRestream asks OpenVibe.Media to record a VOD or clips of an RTMP session. Playback: a live, non-private session is served as HTTP-FLV at https://openre.stream/play/<session id>.flv.',
                 '',

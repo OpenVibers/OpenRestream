@@ -60,7 +60,8 @@ t('llms.txt is plain text, leads with open restreaming (OpenVibe Live on by defa
         assert.match(lead, /OpenVibe Live channel on by default/);
         assert.match(lead, /go live from their browser on OpenVibe\.Live/, 'browser go-live is still named, where it runs');
         // Only the RTMP ingest and restream workers run in production: WHIP and JSMPEG are ported, not served yet.
-        assert.match(r.text, /WHIP, RFC 9725\) and JSMPEG ingest are ported to OpenRestream and tested, but their workers do not run in production yet/);
+        assert.match(r.text, /WHIP \(RFC 9725\) to https:\/\/ingest\.openre\.stream\/whip\/<ingest key>, open to browsers/);
+        assert.doesNotMatch(r.text, /do not run in production yet/, 'the workers run');
     } finally {
         await api.close();
     }
