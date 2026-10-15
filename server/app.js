@@ -135,6 +135,8 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
     // Per-actor limits on a signed-in person's writes (server/api/actor-limits.js; roadmap WS-R task 4).
     const actorLimits = require('./api/actor-limits').createOpenReActorLimits({ registry: metrics.registry, valkey });
     app.use('/api/v1', apiJson, auth.middleware({ services: true }), actorLimits);
+    // Control first (openre.resource.control: suspend or resume a person's definition), then the index.
+    app.use('/api/v1/resources/control', require('./registry/resource-control').router({ db, store, guard: auth.guard('openre.resource.control') }));
     app.use('/api/v1/resources', resourceIndex.router({ db, guard: auth.guard('openre.resource.read') }));
     app.use('/api/v1', v1.router);
 
