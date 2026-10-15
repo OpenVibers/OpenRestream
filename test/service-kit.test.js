@@ -18,7 +18,7 @@ const quiet = { log() {}, warn() {}, error() {} };
 const source = fs.readFileSync(path.join(__dirname, '../server/index.js'), 'utf8');
 
 t('server/index.js imports gracefulStop from openvibe-sdk/service and owns no signal handler', () => {
-    assert.match(source, /const \{ gracefulStop \} = require\('openvibe-sdk\/service'\)/);
+    assert.match(source, /const \{ gracefulStop(, [A-Za-z]+)* \} = require\('openvibe-sdk\/service'\)/);
     assert.doesNotMatch(source, /process\.on\('SIGTERM'/);
     assert.doesNotMatch(source, /process\.on\('SIGINT'/);
     assert.doesNotMatch(source, /setTimeout\(\(\) => process\.exit\(1\), 10000\)/, 'the old 10 s exit-1 timer is gone');
@@ -29,7 +29,7 @@ t('the one stop names openre-api, passes the server and the store steps, and use
     const call = source.slice(at, at + 500);
     assert.match(call, /name: 'openre-api'/);
     assert.match(call, /server: h\.server/);
-    assert.match(call, /stop: \[\(\) => h\.keys\.stop\(\)\]/, 'the keys poller stops first');
+    assert.match(call, /stop: \[\(\) => h\.keys\.stop\(\), async \(\) => \{ if \(telemetryRetention\) await telemetryRetention\.stop\(\); await telemetry\.stop\(\); \}\]/, 'the keys poller stops first, then request telemetry flushes while the database is open');
     assert.match(call, /close: \[\(\) => h\.app\.locals\.valkey && h\.app\.locals\.valkey\.close\(\)\]/);
     assert.match(call, /handles: \[\(\) => h\.rt\.db\.close\(\)\]/, 'the database closes after Valkey and its failure exits 1');
     assert.match(call, /drainMs: 8000/);

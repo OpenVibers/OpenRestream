@@ -22,6 +22,7 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
     // GET /metrics (loopback only, Track O): request rates and latencies, process metrics and live
     // sessions by state, from openvibe-shared/metrics (mounted before every route).
     const metrics = require('openvibe-shared/metrics').instrument(app, { service: 'openre' });
+    app.use(require('openvibe-sdk/service').telemetryMiddleware);   // request telemetry: a no-op until server/index.js calls telemetry.init()
     metrics.registry.gauge({ name: 'openre_sessions', help: 'Ingest sessions by state', labelNames: ['state'],
         collect: async () => (await db.prepare("SELECT state, count(*) AS n FROM ingest_sessions WHERE state IN ('starting','live') GROUP BY state").all()).map((r) => ({ labels: { state: r.state }, value: r.n })) });
     app.use(contracts.http.middleware());
