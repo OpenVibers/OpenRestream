@@ -9,7 +9,8 @@
  * start() is what the tests use too: it takes a config plus injectable clock/fetch/log (and a database handle).
  */
 const path = require('path');
-const { gracefulStop } = require('openvibe-sdk/service');
+const { gracefulStop, telemetry } = require('openvibe-sdk/service');
+const { createPgTelemetrySink, startTelemetryRetention } = require('openvibe-sdk/telemetry');
 const { load } = require('./config');
 const { openRuntime } = require('./store');
 const { createNetworkKeys } = require('openvibe-sdk/auth');
@@ -52,10 +53,14 @@ if (require.main === module) {
         // SIGTERM/SIGINT (openvibe-sdk/service, docs/service.md's OpenRestream entry): the keys poller stops, requests
         // in flight get 8 s, then Valkey and the database close in that order. A database close failure exits 1;
         // past the 10 s deadline the process also exits 1. Workers are separate processes and keep running.
+        // Request telemetry (openvibe-sdk/service, plan T1): one aggregated sample per route template, method and status
+        // class each minute, stored in this service's telemetry_samples table; rows older than 14 days go daily.
+        telemetry.init({ service: 'openre', sink: createPgTelemetrySink({ db: h.rt.db, log: console }), skipPrefixes: ['/shared'], intervalMs: 60_000 });
+        const telemetryRetention = startTelemetryRetention({ db: h.rt.db, log: console, olderThanDays: 14 });
         gracefulStop({
             name: 'openre-api',
             server: h.server,
-            stop: [() => h.keys.stop()],
+            stop: [() => h.keys.stop(), async () => { if (telemetryRetention) await telemetryRetention.stop(); await telemetry.stop(); }],
             close: [() => h.app.locals.valkey && h.app.locals.valkey.close()],
             handles: [() => h.rt.db.close()],
             drainMs: 8000,
