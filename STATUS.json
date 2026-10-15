@@ -10,7 +10,7 @@
   "domain": "openre.stream",
   "contracts": "openvibe-contracts v0.176.0 (openvibe-sdk v0.44.0, openvibe-shared v4.1.3)",
   "sdk": "openvibe-sdk v0.44.0",
-  "shared": "openvibe-shared v4.1.9",
+  "shared": "openvibe-shared v4.2.0",
   "protocols": {
     "rtmp": "ingest ported (openre-rtmp-ingest)",
     "restream": "RTMP source to RTMP/RTMPS/SRT destinations ported (openre-restream-worker)",
