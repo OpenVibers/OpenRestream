@@ -79,6 +79,9 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         assert.ok(r.text.includes(`href="${api.config.liveUrl}"`), 'browser go-live opens OpenVibe.Live, where it runs today');
         assert.match(r.text, /Going live from a browser happens on OpenVibe\.Live for now/);
         assert.match(r.text, /href="\/shared\/showcase\.css\?v=[0-9a-f]{12}"/);
+        // The showcase sits in main.ore's column, which has its gutter already: no second one, so the sign-in line and
+        // "Recently shipped" line up with the sections above.
+        assert.ok(r.text.includes('main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right:0}'));
         assert.strictEqual((r.text.match(/<h1[ >]/g) || []).length, 1, 'one h1');
         // The SEO head (openvibe-shared/seo): the front page is shareable and machine-readable.
         assert.match(r.text, /<meta property="og:title" content="OpenRestream — go live once, stream everywhere">/);

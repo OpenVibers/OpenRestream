@@ -23,6 +23,7 @@ const CSS = `
 :root{--ore-bg:#0d131d;--ore-panel:#141c2b;--ore-line:#233049;--ore-text:#e6ecf5;--ore-muted:#93a2bd;--ore-accent:#3b82f6;--ore-ok:#22c55e;--ore-warn:#f59e0b;--ore-bad:#ef4444}
 body{margin:0;background:var(--ore-bg);color:var(--ore-text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
+main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right:0}
 .ore h1{font-size:1.6rem;margin:.2em 0 .4em}.ore h2{font-size:1.15rem;margin:1.6em 0 .6em}.ore h3{font-size:1rem;margin:1em 0 .4em}
 .ore a{color:#93c5fd}.ore p.muted,.ore .muted{color:var(--ore-muted)}
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
