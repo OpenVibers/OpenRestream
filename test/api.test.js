@@ -81,7 +81,7 @@ t('a typed Network token (a realtime ticket, a FedCM assertion) is never a sessi
         assert.strictEqual(bearer.status, 401, JSON.stringify(bearer.body));
         assert.strictEqual(bearer.body.code, 'token.invalid');
         const me = await request(api.base, 'GET', '/auth/me', { cookie: `ov_token=${token}` });
-        assert.strictEqual(me.status, 401, 'not signed in with it');
+        assert.deepStrictEqual([me.status, me.body.user], [200, null], 'not signed in with it (signed out answers 200 with no user)');
     }
     const session = await request(api.base, 'GET', '/auth/me', { cookie: `ov_token=${owner}` });
     assert.strictEqual(session.status, 200, 'the session token itself still signs in');
