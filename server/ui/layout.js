@@ -79,6 +79,10 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
     try { footerSsr = require('openvibe-shared/footer').ssr({ service: 'openre', variant: 'compact', updates: '/updates' }); } catch { footerSsr = '<footer id="ov-footer"></footer>'; }
     let icon = '';
     try { icon = require('openvibe-shared/app-icon').headTags({ site: 'network' }); } catch { icon = ''; }
+    // A crawlable icon (search engines cannot use the data: favicon) and the installable app's manifest: the shared set.
+    try {
+        icon += `\n<link rel="apple-touch-icon" href="${require('openvibe-shared/app-icons').url('openre', 192)}">\n<link rel="manifest" href="${ovServe.manifestUrl('openre')}">`;
+    } catch { /* the inline favicon is enough to render */ }
     return `<!DOCTYPE html>
 <html lang="en">
 <head>

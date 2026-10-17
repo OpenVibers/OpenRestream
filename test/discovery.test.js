@@ -79,6 +79,9 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         assert.ok(r.text.includes(`href="${api.config.liveUrl}"`), 'browser go-live opens OpenVibe.Live, where it runs today');
         assert.match(r.text, /Going live from a browser happens on OpenVibe\.Live for now/);
         assert.match(r.text, /href="\/shared\/showcase\.css\?v=[0-9a-f]{12}"/);
+        // A crawlable icon and the installable app's manifest (the shared set): search engines cannot use the data: favicon.
+        assert.match(r.text, /<link rel="apple-touch-icon" href="\/shared\/icons\/[a-z0-9-]+-192\.png\?v=[0-9a-f]{12}">/);
+        assert.match(r.text, /<link rel="manifest" href="\/shared\/manifest\/openre\.webmanifest\?v=[0-9a-f]{12}">/);
         // The showcase sits in main.ore's column, which has its gutter already: no second one, so the sign-in line and
         // "Recently shipped" line up with the sections above.
         assert.ok(r.text.includes('main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right:0}'));
