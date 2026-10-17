@@ -100,7 +100,7 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
     router.get('/me', async (req, res) => {
         const token = (req.cookies && req.cookies[ACCESS]) || null;
         const claims = token ? await auth.verifyUser(token) : null;
-        if (!claims) return res.status(401).json({ error: 'Not authenticated' });
+        if (!claims) return res.json({ user: null });   // signed out: 200 with no user (as Blog, Community, Wiki), not a 401 in every signed-out visitor's console
         const { iat, exp, aud, iss, nbf, jti, ...user } = claims;
         return res.json({ user, expires_at: exp ? exp * 1000 : null });
     });
