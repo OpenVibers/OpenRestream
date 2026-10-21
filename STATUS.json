@@ -8,7 +8,7 @@
   "port": 4500,
   "rtmpPort": 1936,
   "domain": "openre.stream",
-  "contracts": "openvibe-contracts v0.200.0 (openvibe-sdk v0.44.0, openvibe-shared v4.1.3)",
+  "contracts": "openvibe-contracts v0.209.0 (openvibe-sdk v0.44.0, openvibe-shared v4.1.3)",
   "sdk": "openvibe-sdk v0.60.0",
   "shared": "openvibe-shared v4.4.0",
   "protocols": {
@@ -48,5 +48,5 @@
     "restore-drill read-only mode",
     "per-actor limits (openvibe-sdk/limits)"
   ],
-  "updated": "2026-10-20"
+  "updated": "2026-10-21"
 }
