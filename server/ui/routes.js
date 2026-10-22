@@ -31,7 +31,7 @@ const pill = (state) => `<span class="pill ${esc(state)}">${esc(state)}</span>`;
 
 // The front page's description reaches the <meta>, og:*/twitter:* and the softwareApp JSON-LD from
 // one place (server/ui/layout.js clips it to 160 for the meta tags).
-const FRONT_PAGE_DESCRIPTION = 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free, open source, no follower minimum.';
+const FRONT_PAGE_DESCRIPTION = 'Go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once, with OpenVibe Live on by default. Free and open source.';
 
 // The front page's questions, answered from what OpenRestream does today (README): shown as a list and as FAQPage JSON-LD.
 const FRONT_FAQ = [
@@ -41,6 +41,14 @@ const FRONT_FAQ = [
     { q: 'Can I go live without OBS?', a: 'Yes. On OpenVibe.Live you can go live from your browser, with nothing to install and no follower minimum.' },
     { q: 'Are my keys safe?', a: 'Your OpenRestream stream key is shown once and stored only as a hash; rotate it any time. Destination keys and SRT passphrases are encrypted (AES-256-GCM), the API only ever shows their last four characters, and logged command lines are redacted.' },
     { q: 'Does my stream also appear on OpenVibe Live?', a: 'By default, yes: every stream also goes live on your openvibe.live channel with chat, clips and VODs. Switch it off for any stream.' },
+];
+
+// The platforms a destination can be (store/outputs.js PLATFORMS), as the front page lists them: what each one needs.
+const DESTINATIONS = [
+    { id: 'twitch', name: 'Twitch', text: 'Your Twitch ingest server and stream key from the Twitch dashboard.' },
+    { id: 'youtube', name: 'YouTube', text: 'The RTMP or RTMPS URL and stream key from YouTube Studio\'s Go live page.' },
+    { id: 'kick', name: 'Kick', text: 'Kick\'s RTMPS server and stream key from your creator dashboard.' },
+    { id: 'custom', name: 'Any RTMP, RTMPS or SRT server', text: 'Another platform, a friend\'s server or your own: a URL and a key or passphrase.' },
 ];
 
 function csrfFor(token) { return crypto.createHash('sha256').update(`openre-csrf:${token}`).digest('hex').slice(0, 32); }
@@ -104,17 +112,36 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
 
     // What shipped on OpenRestream: the shared update log every OpenVibe site has.
     router.get('/updates', (req, res) => page(req, res, { canonicalPath: '/updates', robots: 'index,follow', title: 'What shipped on OpenRestream', body: frame.updatesBody({ service: 'openre', siteName: 'OpenRestream' }) + `<script src="${ovServe.url('shipped.js')}" defer></script>` }));
+    // The front page's real figures, read at most once a minute: streams set up, destinations by platform, sessions run
+    // and the ones live now. A figure that is 0 is not shown, and a failed read shows none.
+    let figuresCache = { at: 0, value: null };
+    async function figures() {
+        if (figuresCache.value && Date.now() - figuresCache.at < 60_000) return figuresCache.value;
+        try {
+            const one = async (sql) => Number(((await rt.db.prepare(sql).get()) || {}).n) || 0;
+            const value = {
+                streams: await one("SELECT count(*) AS n FROM stream_definitions WHERE state <> 'archived'"),
+                destinations: await one('SELECT count(*) AS n FROM destinations'),
+                sessions: await one('SELECT count(*) AS n FROM ingest_sessions'),
+                live: await one("SELECT count(*) AS n FROM ingest_sessions WHERE state IN ('starting', 'live')"),
+            };
+            figuresCache = { at: Date.now(), value };
+            return value;
+        } catch { return null; }
+    }
+
     router.get('/', async (req, res) => {
         const signedIn = req.caller.kind === 'user' && req.caller.subject;
+        const f = await figures();
         const mine = signedIn ? await store.definitions.list({ owner_subject: req.caller.subject }) : [];
         page(req, res, {
             canonicalPath: '/', robots: 'index,follow', styles: [showcase.STYLESHEET],
             description: FRONT_PAGE_DESCRIPTION,
             // Structured data for the front page only: the site is a web application (openre.stream).
-            jsonLd: [seo.jsonLd.softwareApp({
+            jsonLd: [seo.jsonLd.website({ name: 'OpenRestream', url: `${config.baseUrl}/`, description: FRONT_PAGE_DESCRIPTION }), seo.jsonLd.softwareApp({
                 name: 'OpenRestream', url: `${config.baseUrl}/`, description: FRONT_PAGE_DESCRIPTION, category: 'MultimediaApplication',
             }), seo.jsonLd.faq(FRONT_FAQ)],
-            body: `${frontPage(config)}
+            body: `${frontPage(config, f)}
 ${signedIn ? `<h2>Your streams</h2>${mine.length ? await streamTable(mine) : '<p class="muted">No streams yet.</p>'}<p><a href="/streams">Manage streams</a></p>` : '<p><a href="/auth/login?next=/streams">Sign in with OpenVibe</a> to manage your streams.</p>'}
 ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' })}`,
         });
@@ -132,8 +159,15 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
         return `rtmp://${host}${r.publicPort && Number(r.publicPort) !== 1935 ? `:${r.publicPort}` : ''}/live`;
     };
 
-    function frontPage(cfg) {
+    function frontPage(cfg, f) {
         const live = cfg.liveUrl;
+        const n = (v) => Number(v).toLocaleString('en-US');
+        const stats = f ? [
+            [f.live, f.live === 1 ? 'stream live right now' : 'streams live right now'],
+            [f.streams, f.streams === 1 ? 'stream set up' : 'streams set up'],
+            [f.destinations, f.destinations === 1 ? 'destination added' : 'destinations added'],
+            [f.sessions, f.sessions === 1 ? 'time gone live' : 'times gone live'],
+        ].filter(([v]) => v > 0) : [];
         return showcase.hero({
             eyebrow: 'OpenRestream · open restreaming',
             title: 'Go live once.', accent: 'Stream everywhere.',
@@ -144,6 +178,7 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
                 { label: 'How browser streaming works', href: `${live}/docs/go-live-in-your-browser` },
             ],
             note: 'Alpha. RTMP ingest and RTMP, RTMPS and SRT restreaming run here. Going live from a browser happens on OpenVibe.Live for now.',
+            html: stats.length ? `<dl class="ore-stats">${stats.map(([v, d]) => `<div><dt>${n(v)}</dt><dd>${esc(d)}</dd></div>`).join('')}</dl>` : undefined,
         }) + showcase.features({
             title: 'What OpenRestream does',
             items: [
@@ -154,6 +189,11 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
                 { icon: 'ov:code', title: 'Open API and SDK', text: 'Streams, keys, sessions and destinations through the OpenVibe API and SDK, for your own tools and bots.' },
                 { icon: 'ov:community', title: 'Free, open, no minimum', text: 'Any OpenVibe account can restream from the first minute: no follower, subscriber or eligibility threshold, and the code is on GitHub.' },
             ],
+        }) + showcase.features({
+            id: 'destinations',
+            title: 'Where it can stream',
+            lede: 'Add each destination once, test it, and it goes live with you every time.',
+            items: DESTINATIONS.map((d) => ({ title: d.name, text: d.text })),
         }) + showcase.steps({
             title: 'Restream with OBS',
             items: [

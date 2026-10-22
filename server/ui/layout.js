@@ -27,6 +27,8 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore h1{font-size:1.6rem;margin:.2em 0 .4em}.ore h2{font-size:1.15rem;margin:1.6em 0 .6em}.ore h3{font-size:1rem;margin:1em 0 .4em}
 .ore a{color:#93c5fd}.ore p.muted,.ore .muted{color:var(--ore-muted)}
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
+.ore-stats{margin:0;display:grid;gap:10px}.ore-stats div{border:1px solid var(--ore-line);border-radius:12px;padding:12px 16px;background:var(--bg-card,#131c2e)}
+.ore-stats dt{font-size:1.25rem;font-weight:700}.ore-stats dd{margin:2px 0 0;color:var(--ore-muted);font-size:.92rem}
 .ore-faq details{border-bottom:1px solid var(--ore-line);padding:.75rem 0}.ore-faq details:first-of-type{border-top:1px solid var(--ore-line)}
 .ore-faq summary{cursor:pointer;font-weight:600;list-style-position:inside}.ore-faq summary:hover{color:#93c5fd}.ore-faq details p{margin:.5rem 0 0;color:var(--ore-muted);max-width:46rem}
 .ore table{width:100%;border-collapse:collapse;font-size:.92rem}.ore th,.ore td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--ore-line);vertical-align:top}
@@ -44,7 +46,7 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 @media (max-width:640px){.ore th:nth-child(n+4),.ore td:nth-child(n+4){display:none}}
 `;
 
-const DESCRIPTION = 'OpenRestream: open restreaming. Go live once from OBS and stream to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, with OpenVibe Live on by default. Free and open source.';
+const DESCRIPTION = 'OpenRestream: go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once, with OpenVibe Live on by default.';
 
 function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,nofollow', config, description = DESCRIPTION, styles = [], jsonLd = null }) {
     const pageTitle = title ? `${title} · ${SITE}` : `${SITE} — go live once, stream everywhere`;
