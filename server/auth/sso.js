@@ -20,9 +20,19 @@ const HINT = 'ov_sso_hint';
 const STATE = 'ov_oauth_state';
 const NEXT = 'ov_oauth_next';
 
-function sanitizeNext(next) {
+/**
+ * A same-site path, or '/'. An absolute URL on this site's own origin (BASE_URL) counts as its path: the shared navbar's
+ * silent sign-in sends the whole page address, and until 2026-10-22 that landed on the home page.
+ */
+function sanitizeNext(next, config) {
     // Browsers drop tabs and newlines and read \ as /, so "/<TAB>/evil.com" or "/\\evil.com" would leave the site.
     if (typeof next === 'string' && /[\u0000-\u001f\u007f\\]/.test(next)) return '/';
+    if (typeof next === 'string' && /^https?:\/\//i.test(next)) {
+        let u = null, own = null;
+        try { u = new URL(next); own = config && config.baseUrl ? new URL(config.baseUrl).origin : null; } catch { return '/'; }
+        if (!own || u.origin !== own) return '/';
+        next = `${u.pathname}${u.search}${u.hash}`;
+    }
     if (typeof next === 'string' && /^\/(?!\/)/.test(next)) return next;
     return '/';
 }
@@ -66,13 +76,13 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
     router.get('/login', (req, res) => {
         const { url, state } = client.getAuthorizationUrl(config.oauth.scope);
         res.cookie(STATE, state, flow);
-        res.cookie(NEXT, sanitizeNext(req.query.next), flow);
+        res.cookie(NEXT, sanitizeNext(req.query.next, config), flow);
         res.redirect(url);
     });
 
     router.get('/callback', async (req, res) => {
         const { code, state, error } = req.query;
-        const next = sanitizeNext(req.cookies && req.cookies[NEXT]);
+        const next = sanitizeNext(req.cookies && req.cookies[NEXT], config);
         const expected = req.cookies && req.cookies[STATE];
         res.clearCookie(STATE, { path: '/auth' });
         res.clearCookie(NEXT, { path: '/auth' });
@@ -84,6 +94,8 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
         try {
             const data = await tokenGrant({ grant_type: 'authorization_code', redirect_uri: config.oauth.redirectUri, code });
             setSession(res, data.access_token, data.refresh_token);
+            // Whatever this browser kept of the site was drawn for a guest: drop it.
+            res.set('Clear-Site-Data', '"cache"');
             return res.redirect(next);
         } catch (err) {
             return res.status(502).type('text/plain').send(`Sign-in failed: ${err.message}`);
@@ -94,7 +106,8 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
         res.clearCookie(ACCESS, { path: '/' });
         res.clearCookie(REFRESH, { path: '/auth' });
         res.cookie(HINT, 'guest', { ...base, httpOnly: false, path: '/', maxAge: 365 * 24 * 60 * 60 * 1000 });
-        res.redirect(sanitizeNext(req.query.next));
+        res.set('Clear-Site-Data', '"cache"');
+        res.redirect(sanitizeNext(req.query.next, config));
     });
 
     router.get('/me', async (req, res) => {
