@@ -73,7 +73,12 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         const r = await request(api.base, 'GET', '/');
         assert.strictEqual(r.status, 200);
         assert.match(r.text, /<h1>Go live once\.<span class="sc-accent"> Stream everywhere\.<\/span><\/h1>/);
-        assert.match(r.text, /<meta name="description" content="OpenRestream: open restreaming\./);
+        assert.match(r.text, /<meta name="description" content="Go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once/);
+        const desc = /<meta name="description" content="([^"]*)"/.exec(r.text)[1];
+        assert.ok(desc.length <= 160, `the description fits a search result (${desc.length})`);
+        const types = [...r.text.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1])['@type']);
+        assert.ok(types.includes('WebSite') && types.includes('FAQPage'), `the site and the questions as structured data: ${types}`);
+        assert.ok(r.text.includes('id="destinations"') && r.text.includes('Any RTMP, RTMPS or SRT server'), 'where it can stream');
         assert.match(r.text, /<title>OpenRestream — go live once, stream everywhere<\/title>/);
         assert.match(r.text, /OpenVibe Live on by default/);
         assert.ok(r.text.includes(`href="${api.config.liveUrl}"`), 'browser go-live opens OpenVibe.Live, where it runs today');
@@ -90,9 +95,9 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         assert.match(r.text, /<meta property="og:title" content="OpenRestream — go live once, stream everywhere">/);
         assert.match(r.text, /<meta name="twitter:card" content="summary_large_image">/);
         assert.match(r.text, /<meta property="og:image" content="https:\/\/openre\.stream\/shared\/social\/openre\.jpg\?v=[0-9a-f]{12}">/);
-        const ld = /<script type="application\/ld\+json">(.*?)<\/script>/s.exec(r.text);
-        assert.ok(ld, 'a JSON-LD script is present');
-        const app = JSON.parse(ld[1]);
+        const blocks = [...r.text.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+        assert.ok(blocks.length, 'JSON-LD is present');
+        const app = blocks.find((x) => x['@type'] === 'WebApplication') || {};
         assert.strictEqual(app['@type'], 'WebApplication');
         assert.strictEqual(app.name, 'OpenRestream');
         assert.strictEqual(app.applicationCategory, 'MultimediaApplication');
