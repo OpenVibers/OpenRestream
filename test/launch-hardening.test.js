@@ -34,5 +34,12 @@ const { sanitizeNext } = require('../server/auth/sso');
     for (const bad of ['/\t/evil.com', '/\n/evil.com', '/\\evil.com', '/a\\b', '//evil.com', 'https://evil.com', '', null]) {
         assert.strictEqual(sanitizeNext(bad), '/', `${JSON.stringify(bad)} stays on the site`);
     }
+    // The shared navbar's silent sign-in sends the whole page address: on this site's own origin it is that page's path.
+    const cfg = { baseUrl: 'https://openre.stream' };
+    assert.strictEqual(sanitizeNext('https://openre.stream/streams/std_1?x=1', cfg), '/streams/std_1?x=1');
+    for (const bad of ['https://evil.com/a', 'https://openre.stream.evil.com/a', 'https://openre.stream//evil.com', 'http://openre.stream/a']) {
+        assert.strictEqual(sanitizeNext(bad, cfg), '/', bad);
+    }
+    assert.strictEqual(sanitizeNext('https://openre.stream/a'), '/', 'with no origin known, an absolute URL goes home');
     console.log('launch hardening: outputs and tests pinned to the checked address; next stays on the site');
 })().catch((err) => { console.error(err); process.exit(1); });
