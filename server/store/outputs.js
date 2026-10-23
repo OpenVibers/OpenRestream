@@ -218,10 +218,12 @@ function createOutputs({ db, config, events, clock, box, definitions, sessions }
 
     /** Coordinator: every live session gets an output per enabled, auto-start, usable destination. */
     async function ensureAutoOutputs() {
+        // A record-only stream (record_to set) never goes out: its destinations wait until it is a normal stream again.
         const rows = await db.prepare(`SELECT s.id AS session_id, d.id AS destination_id FROM ingest_sessions s
             JOIN destinations d ON d.definition_id = s.definition_id
+            JOIN stream_definitions sd ON sd.id = s.definition_id
             LEFT JOIN outputs o ON o.session_id = s.id AND o.destination_id = d.id
-            WHERE s.state = 'live' AND d.enabled = 1 AND d.auto_start = 1 AND d.hold_reason IS NULL
+            WHERE s.state = 'live' AND sd.record_to IS NULL AND d.enabled = 1 AND d.auto_start = 1 AND d.hold_reason IS NULL
               AND d.stream_key_enc IS NOT NULL AND (d.cooldown_until IS NULL OR d.cooldown_until <= ?) AND o.id IS NULL`).all(now());
         for (const r of rows) await q.insertOut.run(newId('output', now()), r.session_id, r.destination_id, now(), now());
         return rows.length;
@@ -237,6 +239,8 @@ function createOutputs({ db, config, events, clock, box, definitions, sessions }
         if (d.hold_reason) throw new StoreError(409, 'openre.destination_held', `held: ${d.hold_reason}`);
         if (!d.enabled) throw new StoreError(409, 'openre.destination_disabled', 'enable the destination first');
         if (!d.stream_key_enc) throw new StoreError(409, 'openre.destination_no_key', 'the destination has no stream key');
+        const owner = await db.prepare('SELECT record_to FROM stream_definitions WHERE id = ?').get(d.definition_id);
+        if (owner && owner.record_to) throw new StoreError(409, 'openre.record_only', 'this stream records only to your videos: nothing goes out');
         const session = (await sessions.list({ definition_id: d.definition_id, state: 'live', limit: 1 }))[0];
         if (!session) throw new StoreError(409, 'openre.not_live', 'the stream is not live');
         return await db.tx(async () => {

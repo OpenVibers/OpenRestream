@@ -22,11 +22,12 @@ class MediaError extends Error {
     constructor(message, status, body) { super(message); this.status = status || 0; this.body = body || null; }
 }
 
-function createMediaClient({ config, fetchImpl = globalThis.fetch }) {
-    const base = `${config.media.url}/api/v1/${encodeURIComponent(config.media.appId)}`;
-    const tokens = config.oauth.clientSecret
+function createMediaClient({ config, fetchImpl = globalThis.fetch, appId = config.media.appId, tokens: shared = null }) {
+    const base = `${config.media.url}/api/v1/${encodeURIComponent(appId)}`;
+    const tokens = shared || (config.oauth.clientSecret
         ? createServiceTokenClient({ tokenUrl: `${config.networkInternalUrl}/oauth/token`, clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret, audience: 'openvibe.media', fetch: fetchImpl })
-        : null;
+        : null);
+    const others = new Map();
 
     // A restore drill (OPENRE_DRILL) never asks Media for anything.
     const configured = config.media.enabled && !config.drill && Boolean(tokens);
@@ -54,7 +55,13 @@ function createMediaClient({ config, fetchImpl = globalThis.fetch }) {
 
     return {
         configured,
-        appId: config.media.appId,
+        appId,
+        /** The same calls against another Media app (a record-only stream's recordings go to OpenVibe.Video's). */
+        forApp(other) {
+            if (!other || other === appId) return this;
+            if (!others.has(other)) others.set(other, createMediaClient({ config, fetchImpl, appId: other, tokens }));
+            return others.get(other);
+        },
         createVod: async (fields) => await request('POST', '/vods', { body: fields }),
         ingestRtmp: async (vodId, rtmpUrl) => await request('POST', `/vods/${encodeURIComponent(vodId)}/ingest/rtmp`, { body: { rtmp_url: rtmpUrl } }),
         /** Media RTP ingest: allocate a local RTP/RTCP port pair Media listens on (Live server/streaming/recorder.js). */

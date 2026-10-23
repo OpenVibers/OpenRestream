@@ -213,10 +213,16 @@ function load(env = process.env) {
             // media.object.upload, namespace live). The shared tenant key is gone (C-42).
             enabled: env.OPENRE_RECORDING !== 'off',
             startDelayMs: int(env.OPENRE_RECORDING_START_DELAY_MS, 2000),
+            // A record-only stream (record_to 'videos') files its recordings in OpenVibe.Video's tenant instead, as the
+            // owner's private video (grant media.object.upload, namespace media-hub); MediaHub picks each one up when
+            // Media says it is ready.
+            videosAppId: env.OPENRE_VIDEOS_MEDIA_APP || 'media-hub',
         },
 
         // ── Live compatibility (links on the UI only; never a data dependency) ──
         liveUrl: trim(env.OV_LIVE_URL || 'https://openvibe.live'),
+        // Where a record-only stream's recordings are watched and edited (links on the UI only).
+        videoUrl: trim(env.OV_VIDEO_URL || 'https://openvibe.video'),
     };
 }
 

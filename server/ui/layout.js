@@ -43,6 +43,12 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore .pill.live,.ore .pill.ok{background:var(--ore-ok);color:#04110a}.ore .pill.starting,.ore .pill.ending,.ore .pill.pending,.ore .pill.error,.ore .pill.draining{background:var(--ore-warn);color:#1a1000}
 .ore .pill.failed,.ore .pill.lost{background:#b91c1c;color:#fff}
 .ore .flash{border-left:4px solid var(--ore-accent);padding:8px 12px;background:var(--ore-panel);margin:12px 0}.ore .flash.bad{border-color:var(--ore-bad)}
+.ore .ore-choice{border:0;padding:0;margin:.4em 0 .7em}.ore .ore-choice legend{color:var(--ore-muted);font-size:.88rem;padding:0;margin-bottom:.35em}
+.ore .ore-options{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.ore .ore-option{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border:1px solid var(--ore-line);border-radius:8px;background:#0a0f18;color:var(--ore-text);font-size:.95rem;cursor:pointer}
+.ore .ore-option:has(input:checked){border-color:var(--ore-accent);box-shadow:inset 0 0 0 1px var(--ore-accent)}.ore .ore-option:has(input:focus-visible){outline:2px solid var(--ore-accent);outline-offset:2px}
+.ore .ore-option input{margin:.3em 0 0;accent-color:var(--ore-accent);flex:none}.ore .ore-option strong{display:block}.ore .ore-option .muted{display:block;font-size:.86rem;margin-top:2px}
+.ore form:has(input[name=record_to][value=videos]:checked) .ore-live-only{display:none}
 @media (max-width:640px){.ore th:nth-child(n+4),.ore td:nth-child(n+4){display:none}}
 `;
 

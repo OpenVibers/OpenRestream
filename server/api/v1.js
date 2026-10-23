@@ -59,6 +59,7 @@ function createV1Router({ rt, auth, liveLink = null }) {
             recording_visibility: d.recording_visibility,
             playback_visibility: d.playback_visibility,
             mirror_to_live: d.mirror_to_live,
+            record_to: d.record_to || null,
             state: d.state,
             revision: d.revision,
             external_refs: d.external_refs,
@@ -158,13 +159,13 @@ function createV1Router({ rt, auth, liveLink = null }) {
             owner_subject: owner,
             title: b.title, description: b.description, protocols: b.protocols,
             recording_mode: b.recording_mode, recording_visibility: b.recording_visibility, playback_visibility: b.playback_visibility,
-            mirror_to_live: b.mirror_to_live, external_refs: b.external_refs,
+            mirror_to_live: b.mirror_to_live, record_to: b.record_to, external_refs: b.external_refs,
             created_by: auth.actorOf(req.caller),
         });
         // OpenVibe Live on by default for a person's own stream (show_on_live: false opts out). A service names its
-        // own refs (Live's slots, Bot's robots), so it is never linked here.
+        // own refs (Live's slots, Bot's robots), so it is never linked here, and a record-only stream never goes live.
         let live = null;
-        if (liveLink && req.caller.kind === 'user' && b.show_on_live !== false) live = await liveLink.link(await store.definitions.get(definition.id));
+        if (liveLink && req.caller.kind === 'user' && b.show_on_live !== false && !definition.record_to) live = await liveLink.link(await store.definitions.get(definition.id));
         res.set('Cache-Control', 'no-store');
         const current = live ? await store.definitions.get(definition.id) : definition;
         return res.status(201).json({ stream: await publicDefinition(current), key: { id: key.id, key: key.key, hint: key.hint, shown_once: true }, ...(live ? { live } : {}) });
@@ -180,10 +181,13 @@ function createV1Router({ rt, auth, liveLink = null }) {
         if (!d) return;
         const b = req.body || {};
         // A person switching mirror_to_live on gets their Live slot first (it stays off, with the reason, when Live refuses).
-        const linkNow = liveLink && req.caller.kind === 'user' && b.mirror_to_live === true && !liveLink.slotOf(d);
+        // A record-only stream is refused instead (openre.record_only): it never goes live.
+        const recordOnly = b.record_to !== undefined ? b.record_to === 'videos' : d.record_to === 'videos';
+        const linkNow = liveLink && req.caller.kind === 'user' && b.mirror_to_live === true && !liveLink.slotOf(d) && !recordOnly;
         let updated = await store.definitions.update(d.id, {
             title: b.title, description: b.description, protocols: b.protocols, recording_mode: b.recording_mode,
             recording_visibility: b.recording_visibility, playback_visibility: b.playback_visibility, mirror_to_live: linkNow ? undefined : b.mirror_to_live, state: b.state,
+            record_to: b.record_to,
         });
         let live = null;
         if (linkNow) { live = await liveLink.link(await store.definitions.get(d.id)); updated = await store.definitions.get(d.id); }
