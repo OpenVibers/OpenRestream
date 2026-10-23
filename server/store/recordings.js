@@ -9,6 +9,11 @@
  *
  * Driven by the session coordinator, never by a transport worker or the API: a worker only has to
  * keep the loopback play URL up, and Media's ffmpeg pulls from it. Media finalises.
+ *
+ * A record-only stream (record_to 'videos', plan 2026-10-22 §3 D1) records into OpenVibe.Video's Media app
+ * (config.media.videosAppId) as a private VOD whose meta names the owner subject; when Media says it is ready,
+ * MediaHub files it as that person's private video, where the AI edit is offered. The recording row keeps its app, so
+ * every later call goes to the same tenant.
  */
 const { newId } = require('../ids');
 const { TYPES } = require('../events');
@@ -29,7 +34,7 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
     const q = {
         get: db.prepare('SELECT * FROM recordings WHERE id = ?'),
         bySession: db.prepare('SELECT * FROM recordings WHERE session_id = ?'),
-        missing: db.prepare(`SELECT s.id AS session_id, d.recording_mode AS mode FROM ingest_sessions s
+        missing: db.prepare(`SELECT s.id AS session_id, d.recording_mode AS mode, d.record_to FROM ingest_sessions s
             JOIN stream_definitions d ON d.id = s.definition_id LEFT JOIN recordings r ON r.session_id = s.id
             WHERE s.state = 'live' AND d.recording_mode IN ('vod', 'clips') AND s.live_at <= ? AND r.id IS NULL`),
         insert: db.prepare(`INSERT INTO recordings (id, session_id, mode, state, media_app, created_at, updated_at)
@@ -48,7 +53,10 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
 
     async function ensureRequests() {
         const rows = await q.missing.all(now() - config.media.startDelayMs);
-        for (const r of rows) await q.insert.run(newId('recording', now()), r.session_id, r.mode, config.media.appId, now(), now());
+        for (const r of rows) {
+            const app = r.record_to === 'videos' ? config.media.videosAppId : config.media.appId;
+            await q.insert.run(newId('recording', now()), r.session_id, r.mode, app, now(), now());
+        }
         return rows.length;
     }
 
@@ -63,6 +71,28 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
     function refOf(definition, service, type) {
         const r = definition.external_refs.find(x => x.service === service && x.type === type);
         return r ? r.id : undefined;
+    }
+
+    /**
+     * What Media is asked to make for a session. Media's 'live' tenant files VODs under Live-local ids; they travel as
+     * typed references on the definition (compatibility only, never identity). A record-only stream's VOD is private
+     * and names its owner instead, for MediaHub.
+     */
+    function vodFields(definition, session, rec) {
+        const meta = { source: 'openre', openre_session_id: session.id, openre_stream_id: definition.id, protocol: session.protocol, mode: rec.mode };
+        if (definition.record_to === 'videos') {
+            return { title: definition.title || 'Recording', visibility: 'private', meta: { ...meta, record_only: true, owner_subject: definition.owner_subject } };
+        }
+        const liveUser = refOf(definition, 'live', 'user');
+        const liveSlot = refOf(definition, 'live', 'managed_stream');
+        return {
+            title: definition.title || 'Stream Recording',
+            user_id: liveUser != null ? Number(liveUser) : undefined,
+            managed_stream_id: liveSlot != null ? Number(liveSlot) : undefined,
+            clips_only: rec.mode === 'clips' || undefined,
+            visibility: definition.recording_visibility,
+            meta,
+        };
     }
 
     /** The egress base URL of the worker that owns this session (its RTP descriptor API), or null. */
@@ -108,16 +138,7 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
             let vodId = rec.media_vod_id;
             try {
                 if (!vodId) {
-                    const liveUser = refOf(definition, 'live', 'user');
-                    const liveSlot = refOf(definition, 'live', 'managed_stream');
-                    const out = await media.createVod({
-                        title: definition.title || 'Stream Recording',
-                        user_id: liveUser != null ? Number(liveUser) : undefined,
-                        managed_stream_id: liveSlot != null ? Number(liveSlot) : undefined,
-                        clips_only: rec.mode === 'clips' || undefined,
-                        visibility: definition.recording_visibility,
-                        meta: { source: 'openre', openre_session_id: session.id, openre_stream_id: definition.id, protocol: 'webrtc', mode: rec.mode },
-                    });
+                    const out = await media.createVod(vodFields(definition, session, rec));
                     vodId = String(out && out.id);
                     rec = await update(rec.id, { media_vod_id: vodId, state: 'requested' });
                 }
@@ -147,7 +168,7 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
                         stream_id: definition.id,
                         owner: { type: 'user', id: definition.owner_subject },
                         mode: rec.mode,
-                        media: { app: config.media.appId, vod_id: r.media_vod_id },
+                        media: { app: rec.media_app || config.media.appId, vod_id: r.media_vod_id },
                         external_refs: definition.external_refs,
                     },
                 });
@@ -173,6 +194,8 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
     }
 
     async function step(rec, media) {
+        // Every call for a recording goes to the tenant it was filed under (a record-only stream's: OpenVibe.Video's).
+        if (rec.media_app && media.forApp) media = media.forApp(rec.media_app);
         const session = await sessions.get(rec.session_id);
         if (!session) return await update(rec.id, { state: 'failed', last_error: 'session missing' });
         const definition = await definitions.row(session.definition_id);
@@ -210,18 +233,7 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
             let vodId = rec.media_vod_id;
             try {
                 if (!vodId) {
-                    // Media's 'live' tenant files VODs under Live-local ids; they travel as typed
-                    // references on the definition (compatibility only, never identity).
-                    const liveUser = refOf(definition, 'live', 'user');
-                    const liveSlot = refOf(definition, 'live', 'managed_stream');
-                    const out = await media.createVod({
-                        title: definition.title || 'Stream Recording',
-                        user_id: liveUser != null ? Number(liveUser) : undefined,
-                        managed_stream_id: liveSlot != null ? Number(liveSlot) : undefined,
-                        clips_only: rec.mode === 'clips' || undefined,
-                        visibility: definition.recording_visibility,
-                        meta: { source: 'openre', openre_session_id: session.id, openre_stream_id: definition.id, protocol: session.protocol, mode: rec.mode },
-                    });
+                    const out = await media.createVod(vodFields(definition, session, rec));
                     vodId = String(out && out.id);
                     rec = await update(rec.id, { media_vod_id: vodId, state: 'requested' });
                 }
@@ -248,7 +260,7 @@ function createRecordings({ db, config, events, clock, definitions, sessions, wo
                         stream_id: definition.id,
                         owner: { type: 'user', id: definition.owner_subject },
                         mode: rec.mode,
-                        media: { app: config.media.appId, vod_id: r.media_vod_id },
+                        media: { app: rec.media_app || config.media.appId, vod_id: r.media_vod_id },
                         external_refs: definition.external_refs,
                     },
                 });

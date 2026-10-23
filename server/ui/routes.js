@@ -185,7 +185,7 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
                 { icon: 'ov:live', title: 'One stream, every platform', text: 'Twitch, YouTube, Kick and any RTMP, RTMPS or SRT server at once. Each destination has its own health, logs and retries.' },
                 { icon: 'ov:stream', title: 'OpenVibe Live on by default', text: 'Every stream also goes live on your openvibe.live channel, with chat, clips and VODs. Switch it off for any stream.' },
                 { icon: 'ov:check', title: 'Keys you control', text: 'Each stream has its own RTMP key, shown once and stored only as a hash. Rotate it any time.' },
-                { icon: 'ov:video', title: 'Recording', text: 'Per stream: record a VOD, keep clips only, or record nothing. OpenVibe.Media keeps the recordings.' },
+                { icon: 'ov:video', title: 'Recording', text: 'Per stream: record a VOD, keep clips only, or record nothing. Or record only: nothing goes live, and each session lands privately in your OpenVibe.Video, ready for the AI edit.' },
                 { icon: 'ov:code', title: 'Open API and SDK', text: 'Streams, keys, sessions and destinations through the OpenVibe API and SDK, for your own tools and bots.' },
                 { icon: 'ov:community', title: 'Free, open, no minimum', text: 'Any OpenVibe account can restream from the first minute: no follower, subscriber or eligibility threshold, and the code is on GitHub.' },
             ],
@@ -227,9 +227,10 @@ ${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p
             body: `<h1>Streams</h1>${list.length ? await streamTable(list) : '<p class="muted">No streams yet.</p>'}
 <div class="card"><h2>New stream</h2>${form(req, '/streams', `
 <label>Title</label><input type="text" name="title" maxlength="140" required>
-<div class="row"><div><label>Recording</label><select name="recording_mode"><option value="vod">Record a VOD</option><option value="clips">Clips only</option><option value="none">Do not record</option></select></div>
+${whereItGoes(null)}
+<div class="ore-live-only"><div class="row"><div><label>Recording</label><select name="recording_mode"><option value="vod">Record a VOD</option><option value="clips">Clips only</option><option value="none">Do not record</option></select></div>
 <div><label>Recording visibility</label><select name="recording_visibility"><option>public</option><option>unlisted</option><option>private</option></select></div></div>
-<label><input type="checkbox" name="show_on_live" value="1" checked> Show it live on my OpenVibe Live channel too</label>
+<label><input type="checkbox" name="show_on_live" value="1" checked> Show it live on my OpenVibe Live channel too</label></div>
 <button type="submit">Create stream</button><p class="muted">The ingest key is shown once, on the next page.</p>`)}</div>`,
         });
     });
@@ -241,6 +242,25 @@ ${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p
         return `<div class="flash bad">${esc(live.reason || 'OpenVibe Live did not link this stream.')}</div>`;
     }
 
+    /**
+     * The choice between a normal stream and one that records only to the owner's videos (record_to 'videos', plan
+     * 2026-10-22 §3 D1). Choosing "record only" hides the fields that only a stream going out uses (CSS :has, no
+     * script); the server forces them anyway.
+     */
+    function whereItGoes(recordTo) {
+        const option = (value, title, text) => `<label class="ore-option"><input type="radio" name="record_to" value="${value}"${(recordTo || '') === value ? ' checked' : ''}><span><strong>${title}</strong><span class="muted">${text}</span></span></label>`;
+        return `<fieldset class="ore-choice"><legend>Where it goes</legend><div class="ore-options">
+${option('', 'Go live', 'Restream to your destinations, and to your OpenVibe Live channel if you like. The recording follows the settings below.')}
+${option('videos', 'Record only, to my videos', `Nothing goes live. Each session is recorded privately to your <a href="${esc(config.videoUrl)}/me/videos">OpenVibe.Video</a>, where the AI edit adds captions, chapters and a summary and can cut an edited copy.`)}
+</div></fieldset>`;
+    }
+
+    /** What a record-only stream does, on its pages. */
+    function recordNote(d) {
+        if (d.record_to !== 'videos') return '';
+        return `<div class="card"><p><span class="pill ok">record only</span> Each session is recorded privately to <a href="${esc(config.videoUrl)}/me/videos">your videos on OpenVibe.Video</a>, where the AI edit is one click away. Nothing goes live: OpenVibe Live and your restream destinations stay off until you switch this back in Settings.</p></div>`;
+    }
+
     async function keyPage(req, res, definition, key, heading, live = null) {
         const ep = await store.definitions.ingestEndpoints(definition);
         res.set('Cache-Control', 'no-store');
@@ -250,19 +270,20 @@ ${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p
 <div class="card"><p><strong>Copy the key now.</strong> OpenRestream stores only a hash of it; this page is the only time it is shown.</p>
 <label>Server (OBS: Settings → Stream → Custom)</label><code class="secret">${esc(ep.rtmp ? ep.rtmp.url : '')}</code>
 <label>Stream key</label><code class="secret">${esc(key.key)}</code></div>
-${liveNote(live)}
+${liveNote(live)}${recordNote(definition)}
 <p><a href="/streams/${esc(definition.id)}">Continue to the stream</a></p>`,
         });
     }
 
     post('/streams', async (req, res) => {
         const b = req.body || {};
+        const recordOnly = b.record_to === 'videos';
         const { definition, key } = await store.definitions.create({
             owner_subject: req.caller.subject, title: b.title, recording_mode: b.recording_mode,
-            recording_visibility: b.recording_visibility, created_by: req.caller.subject,
+            recording_visibility: b.recording_visibility, record_to: recordOnly ? 'videos' : null, created_by: req.caller.subject,
         });
-        // OpenVibe Live on by default: the box is ticked on the form, unticking it opts out.
-        const live = liveLink && b.show_on_live === '1' ? await liveLink.link(await store.definitions.get(definition.id)) : null;
+        // OpenVibe Live on by default: the box is ticked on the form, unticking it opts out. A record-only stream never goes live.
+        const live = liveLink && b.show_on_live === '1' && !recordOnly ? await liveLink.link(await store.definitions.get(definition.id)) : null;
         await keyPage(req, res, definition, key, 'Stream created', live);
     });
 
@@ -281,7 +302,7 @@ ${liveNote(live)}
             title: d.title, canonicalPath: `/streams/${d.id}`,
             body: `<h1>${esc(d.title)} ${pill(d.state)}</h1>
 <p class="muted mono">${esc(d.id)}${d.external_refs.length ? ` · linked to ${esc(d.external_refs.map(r => `${r.service}:${r.type}:${r.id}`).join(', '))}` : ''}</p>
-${liveStatus(d, req.query.live)}
+${d.record_to ? recordNote(d) : liveStatus(d, req.query.live)}
 <div class="card"><h2>Ingest</h2>
 ${ep.rtmp ? `<label>RTMP server</label><code class="secret">${esc(ep.rtmp.url)}</code>` : '<p class="muted">RTMP is not enabled for this stream.</p>'}
 <table><tr><th>Key</th><th>Status</th><th>Created</th><th>Last used</th></tr>${keys.map(k => `<tr><td class="mono">ork_…${esc(k.hint)}</td><td>${pill(k.status)}${k.grace_until ? ` until ${esc(iso(k.grace_until))}` : ''}</td><td>${esc(iso(k.created_at))}</td><td>${esc(iso(k.last_used_at))}</td></tr>`).join('') || '<tr><td colspan="4">No usable key: rotate to get one.</td></tr>'}</table>
@@ -290,23 +311,24 @@ ${form(req, `/streams/${d.id}/rotate`, `<div class="row"><div><label>Old key sta
 </div>
 <div class="card"><h2>Now</h2>${open ? `<p>${pill(open.state)} since ${esc(iso(open.live_at || open.created_at))} on ${esc(open.worker_kind)} generation ${esc(open.worker_generation)} · <a href="/sessions/${esc(open.id)}">session</a></p>
 ${form(req, `/sessions/${open.id}/end`, '<button type="submit" class="danger">End session</button>', { cls: 'inline', confirm: 'Disconnect the encoder?' })}` : '<p class="muted">Offline.</p>'}</div>
-<div class="card"><h2>Restream destinations</h2>
+<div class="card"><h2>Restream destinations</h2>${d.record_to ? '<p class="muted">Off while this stream records only to your videos.</p>' : ''}
 ${dests.length ? `<table><tr><th>Destination</th><th>Output</th><th>Health</th><th>Actions</th></tr>${(await Promise.all(dests.map(async (x) => {
                 const o = await outFor(x.id);
                 return `<tr><td><strong>${esc(x.name || x.platform)}</strong> <span class="muted">${esc(x.platform)}</span><br><span class="mono">${esc(x.server_url)}</span><br><span class="muted">key ${esc(x.stream_key_hint || 'not set')}${x.enabled ? '' : ' · disabled'}${x.auto_start ? ' · auto-start' : ''}${x.hold_reason ? ` · held: ${esc(x.hold_reason)}` : ''}${x.cooldown_ms ? ` · cooling down until ${esc(x.cooldown_until)}` : ''}</span></td>
 <td>${o ? pill(o.state) : '<span class="muted">—</span>'}</td>
 <td>${o && o.progress ? `${esc(o.progress.fps ?? '?')} fps · ${esc(o.progress.bitrate_kbps ?? '?')} kbit/s · speed ${esc(o.progress.speed ?? '?')}` : ''}${o && o.last_error ? `<br><span class="muted">${esc(o.last_error)}</span>` : ''}${!o && x.last_error ? `<span class="muted">${esc(x.last_error)}</span>` : ''}</td>
-<td>${form(req, `/destinations/${x.id}/test`, '<button type="submit" class="secondary">Test</button>', { cls: 'inline' })}${open ? (o && ['pending', 'starting', 'live', 'error'].includes(o.state) ? form(req, `/destinations/${x.id}/stop`, '<button type="submit" class="secondary">Stop</button>', { cls: 'inline' }) : form(req, `/destinations/${x.id}/start`, '<button type="submit">Start</button>', { cls: 'inline' })) : ''}
+<td>${form(req, `/destinations/${x.id}/test`, '<button type="submit" class="secondary">Test</button>', { cls: 'inline' })}${open && !d.record_to ? (o && ['pending', 'starting', 'live', 'error'].includes(o.state) ? form(req, `/destinations/${x.id}/stop`, '<button type="submit" class="secondary">Stop</button>', { cls: 'inline' }) : form(req, `/destinations/${x.id}/start`, '<button type="submit">Start</button>', { cls: 'inline' })) : ''}
 <a href="/destinations/${esc(x.id)}">Edit</a>${form(req, `/destinations/${x.id}/delete`, '<button type="submit" class="danger">Delete</button>', { cls: 'inline', confirm: 'Delete this destination?' })}</td></tr>`;
             }))).join('')}</table>` : '<p class="muted">No destinations.</p>'}
 <h3>Add a destination</h3>${form(req, `/streams/${d.id}/destinations`, destinationFields({}))}</div>
 <div class="card"><h2>Settings</h2>${form(req, `/streams/${d.id}`, `
 <label>Title</label><input type="text" name="title" maxlength="140" value="${esc(d.title)}">
-<div class="row"><div><label>Recording</label><select name="recording_mode">${['vod', 'clips', 'none'].map(m => `<option value="${m}"${d.recording_mode === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
-<div><label>Recording visibility</label><select name="recording_visibility">${['public', 'unlisted', 'private'].map(m => `<option${d.recording_visibility === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
-<div><label>Playback</label><select name="playback_visibility">${['public', 'unlisted', 'private'].map(m => `<option${d.playback_visibility === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
+${whereItGoes(d.record_to)}
+<div class="row"><div class="ore-live-only"><label>Recording</label><select name="recording_mode">${['vod', 'clips', 'none'].map(m => `<option value="${m}"${d.recording_mode === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
+<div class="ore-live-only"><label>Recording visibility</label><select name="recording_visibility">${['public', 'unlisted', 'private'].map(m => `<option${d.recording_visibility === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
+<div class="ore-live-only"><label>Playback</label><select name="playback_visibility">${['public', 'unlisted', 'private'].map(m => `<option${d.playback_visibility === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
 <div><label>State</label><select name="state">${['active', 'disabled'].map(m => `<option${d.state === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div></div>
-<label><input type="checkbox" name="mirror_to_live" value="1"${d.mirror_to_live ? ' checked' : ''}> Show it live on my OpenVibe Live channel too</label>
+<label class="ore-live-only"><input type="checkbox" name="mirror_to_live" value="1"${d.mirror_to_live ? ' checked' : ''}> Show it live on my OpenVibe Live channel too</label>
 <button type="submit">Save</button>`)}</div>
 <h2>Sessions</h2>${sessionTable(sessions)}`,
         });
@@ -355,8 +377,10 @@ ${dests.length ? `<table><tr><th>Destination</th><th>Output</th><th>Health</th><
         const d = await ownDefinition(req, res, req.params.id);
         if (!d) return;
         const b = req.body || {};
-        const want = b.mirror_to_live === '1';
-        await store.definitions.update(d.id, { title: b.title, recording_mode: b.recording_mode, recording_visibility: b.recording_visibility, playback_visibility: b.playback_visibility, state: b.state, mirror_to_live: want && liveLink ? undefined : want });
+        // Record only wins: the fields it hides are still posted, and the store sets them for a record-only stream.
+        const recordTo = b.record_to === 'videos' ? 'videos' : null;
+        const want = b.mirror_to_live === '1' && !recordTo;
+        await store.definitions.update(d.id, { title: b.title, recording_mode: b.recording_mode, recording_visibility: b.recording_visibility, playback_visibility: b.playback_visibility, state: b.state, record_to: recordTo, mirror_to_live: want && liveLink ? undefined : want });
         if (want && liveLink) {
             // Switching it on gets the Live slot first; refused, it stays off and the page says why.
             const r = await liveLink.link(await store.definitions.get(d.id));
@@ -457,7 +481,7 @@ ${dests.length ? `<table><tr><th>Destination</th><th>Output</th><th>Health</th><
 <tr><th>Worker</th><td>${esc(s.worker_kind)} generation ${esc(s.worker_generation)} <span class="mono muted">${esc(s.worker_id)}</span></td></tr>
 <tr><th>Live since</th><td>${esc(iso(s.live_at))}</td></tr><tr><th>Ended</th><td>${esc(iso(s.ended_at))} ${esc(s.end_reason || s.failure_reason || '')}</td></tr>
 <tr><th>Media</th><td>${s.media_info ? esc(`${s.media_info.video_codec || '?'} ${s.media_info.width || '?'}×${s.media_info.height || '?'} @${s.media_info.fps || '?'} · ${s.media_info.audio_codec || 'no audio'} · ${s.media_info.bitrate_kbps || '?'} kbit/s`) : '—'}</td></tr>
-<tr><th>Recording</th><td>${rec ? `${pill(rec.state)} ${rec.media_vod_id ? `Media ${esc(rec.media_app)} VOD ${esc(rec.media_vod_id)}` : ''} ${esc(rec.last_error || '')}` : '<span class="muted">none</span>'}</td></tr>
+<tr><th>Recording</th><td>${rec ? `${pill(rec.state)} ${rec.media_vod_id ? `Media ${esc(rec.media_app)} VOD ${esc(rec.media_vod_id)}` : ''} ${esc(rec.last_error || '')}${rec.media_app === config.media.videosAppId ? `<br>Private, in <a href="${esc(config.videoUrl)}/me/videos">your videos on OpenVibe.Video</a> once it is ready.` : ''}` : '<span class="muted">none</span>'}</td></tr>
 <tr><th>Playback</th><td>${pb && pb.flv && s.state === 'live' ? `<a class="mono" href="${esc(pb.flv.public_url)}">${esc(pb.flv.public_url)}</a> (HTTP-FLV)` : '—'}</td></tr>
 </table>${open ? form(req, `/sessions/${s.id}/end`, '<button type="submit" class="danger">End session</button>', { confirm: 'Disconnect the encoder?' }) : ''}</div>
 <h2>Outputs</h2>${outputs.length ? `<table><tr><th>Output</th><th>State</th><th>Health</th><th>Restarts</th></tr>${(await outputs.map(o => `<tr><td class="mono">${esc(o.id)}<br><span class="muted">${esc(o.destination_id)}</span></td><td>${pill(o.state)}</td><td>${o.progress ? `${esc(o.progress.fps ?? '?')} fps · ${esc(o.progress.bitrate_kbps ?? '?')} kbit/s` : ''} ${esc(o.last_error || '')}</td><td>${esc(o.restart_attempts)}/${esc(o.max_restart_attempts)}</td></tr>`)).join('')}</table>` : '<p class="muted">No outputs.</p>'}

@@ -17,6 +17,9 @@ const PROTOCOLS = Object.freeze(['rtmp', 'webrtc', 'jsmpeg']);
 const PROTOCOL_ALIASES = Object.freeze({ whip: 'webrtc' });
 const RECORDING_MODES = Object.freeze(['vod', 'clips', 'none']);
 const VISIBILITIES = Object.freeze(['public', 'unlisted', 'private']);
+// record_to: where a stream goes instead of out. 'videos' records each session privately to the owner's OpenVibe.Video
+// (plan 2026-10-22 §3 D1): a VOD, private, no restream output, never on OpenVibe Live. null: a normal stream.
+const RECORD_TO = Object.freeze(['videos']);
 const REF_SERVICE_RE = /^[a-z][a-z0-9-]{1,39}$/;
 const REF_TYPE_RE = /^[a-z][a-z0-9_]{1,39}$/;
 // Owner-level reference types may be shared by several definitions of the same person.
@@ -55,9 +58,9 @@ function createDefinitions({ db, config, events, clock }) {
 
     const q = {
         insert: db.prepare(`INSERT INTO stream_definitions (id, owner_subject, title, description, protocols, recording_mode,
-            recording_visibility, playback_visibility, mirror_to_live, state, revision, created_at, updated_at)
+            recording_visibility, playback_visibility, mirror_to_live, record_to, state, revision, created_at, updated_at)
             VALUES (@id, @owner_subject, @title, @description, @protocols, @recording_mode, @recording_visibility,
-            @playback_visibility, @mirror_to_live, 'active', 1, @now, @now)`),
+            @playback_visibility, @mirror_to_live, @record_to, 'active', 1, @now, @now)`),
         get: db.prepare('SELECT * FROM stream_definitions WHERE id = ?'),
         refs: db.prepare('SELECT service, type, ref_id AS id, label FROM external_refs WHERE definition_id = ? ORDER BY created_at, service, type'),
         insertRef: db.prepare('INSERT INTO external_refs (definition_id, service, type, ref_id, label, created_at) VALUES (?, ?, ?, ?, ?, ?)'),
@@ -81,6 +84,7 @@ function createDefinitions({ db, config, events, clock }) {
             ...d,
             protocols: parseJson(d.protocols, ['rtmp']),
             mirror_to_live: Boolean(d.mirror_to_live),
+            record_to: d.record_to || null,
             external_refs: await q.refs.all(id),
         };
     }
@@ -121,6 +125,23 @@ function createDefinitions({ db, config, events, clock }) {
             }
         }
         if (input.mirror_to_live !== undefined) out.mirror_to_live = input.mirror_to_live ? 1 : 0;
+        if (input.record_to !== undefined) {
+            if (input.record_to !== null && input.record_to !== '' && !RECORD_TO.includes(input.record_to)) {
+                throw new StoreError(400, 'openre.invalid_field', `record_to must be ${RECORD_TO.join(' or ')}, or null`);
+            }
+            out.record_to = input.record_to || null;
+        }
+        // Recording only, to the owner's videos: always a private VOD, never on OpenVibe Live. What the request did not
+        // name follows; what it named against it is refused, so nobody believes a record-only stream went out.
+        const recordTo = out.record_to !== undefined ? out.record_to : (base.record_to || null);
+        if (recordTo === 'videos') {
+            if (out.mirror_to_live) throw new StoreError(400, 'openre.record_only', 'a stream that records only to your videos never goes to OpenVibe Live');
+            for (const [k, want] of [['recording_mode', 'vod'], ['recording_visibility', 'private'], ['playback_visibility', 'private']]) {
+                if (out[k] !== undefined && out[k] !== want && input.record_to === undefined) throw new StoreError(400, 'openre.record_only', `a stream that records only to your videos has ${k} ${want}`);
+                out[k] = want;
+            }
+            out.mirror_to_live = 0;
+        }
         if (input.state !== undefined) {
             if (!['active', 'disabled'].includes(input.state)) throw new StoreError(400, 'openre.invalid_field', 'state must be active or disabled');
             out.state = input.state;
@@ -143,7 +164,7 @@ function createDefinitions({ db, config, events, clock }) {
     async function create(input) {
         if (!ids.isSubjectId('user', input.owner_subject)) throw new StoreError(400, 'openre.invalid_owner', 'owner_subject must be a usr_… subject id');
         const given = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined && v !== null && v !== ''));
-        const fields = normalize({ protocols: ['rtmp'], recording_mode: 'vod', recording_visibility: 'public', playback_visibility: 'public', mirror_to_live: false, ...given });
+        const fields = normalize({ protocols: ['rtmp'], recording_mode: 'vod', recording_visibility: 'public', playback_visibility: 'public', mirror_to_live: false, record_to: null, ...given });
         const refs = validateRefs(input.external_refs);
         const id = newId('stream', now());
         return await db.tx(async () => {
