@@ -181,9 +181,12 @@ function createV1Router({ rt, auth, liveLink = null }) {
         if (!d) return;
         const b = req.body || {};
         // A person switching mirror_to_live on gets their Live slot first (it stays off, with the reason, when Live refuses).
-        // A record-only stream is refused instead (openre.record_only): it never goes live.
+        // So does a first-party service acting for the stream's owner (X-OV-Subject), at that person's request: Bot's
+        // "Show this desk on my Live channel", a robot's Live switch. A stream that already names its Live slot (Live's
+        // own) is never linked again. A record-only stream is refused instead (openre.record_only): it never goes live.
         const recordOnly = b.record_to !== undefined ? b.record_to === 'videos' : d.record_to === 'videos';
-        const linkNow = liveLink && req.caller.kind === 'user' && b.mirror_to_live === true && !liveLink.slotOf(d) && !recordOnly;
+        const forOwner = req.caller.kind === 'user' || (req.caller.kind === 'service' && !!req.caller.subject);
+        const linkNow = liveLink && forOwner && b.mirror_to_live === true && !liveLink.slotOf(d) && !recordOnly;
         let updated = await store.definitions.update(d.id, {
             title: b.title, description: b.description, protocols: b.protocols, recording_mode: b.recording_mode,
             recording_visibility: b.recording_visibility, playback_visibility: b.playback_visibility, mirror_to_live: linkNow ? undefined : b.mirror_to_live, state: b.state,

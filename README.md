@@ -209,7 +209,9 @@ sudo deploy/scripts/deploy.sh status                # workers.sh
 
 A stream someone creates on openre.stream also goes live on their OpenVibe Live channel unless they untick "Show it
 live on my OpenVibe Live channel too" (the create form, ticked by default; the API's `show_on_live: false` for a
-person's own stream; services such as Live and Bot name their own refs and are never linked). `server/live-link.js`
+person's own stream; a service's new stream, such as Live's and Bot's, names its own refs and is not linked; switching
+`mirror_to_live` on later links it, by the person or by a service acting for them with X-OV-Subject, such as Bot's
+"Show this desk on my Live channel", unless the stream already names its Live slot). `server/live-link.js`
 asks Live for a slot on the owner's channel bound to the stream (`POST /internal/openre/slots` on Live, capability
 `live.openre.slot.bind`, contracts 0.126.0, with this service's Network token for audience `openvibe.live`). The slot
 becomes the stream's `live:managed_stream` ref (its label is the channel URL) and `mirror_to_live` turns on, so Live's
