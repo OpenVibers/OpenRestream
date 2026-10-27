@@ -3,7 +3,8 @@
  * OpenVibe Live on by default (owner, 2026-10-09; contracts 0.126.0). A person's new stream asks Live for a slot on
  * their channel (POST /internal/openre/slots with OpenRestream's service token) unless they untick it; the slot becomes
  * the stream's live:managed_stream ref and mirror_to_live turns on. A refusal keeps the stream with Live off and says
- * why. Services (Live's own slots, Bot's robots) are never linked here. Switching it on later links once.
+ * why. A service's new stream (Live's own slots, Bot's robots) is never linked here. Switching it on later links once,
+ * by the person or by a service acting for them (X-OV-Subject), unless the stream already names its Live slot.
  */
 const assert = require('assert');
 const { bootApi, request, userToken, serviceToken, suite, OWNER, OTHER } = require('./helpers');
@@ -120,6 +121,31 @@ t('the API links a person\'s stream by default, never a service\'s', async () =>
     assert.strictEqual(theirs.body.live.linked, false);
     assert.strictEqual(theirs.body.live.code, 'live.no_account');
     assert.strictEqual(theirs.body.stream.mirror_to_live, false);
+});
+
+t('a service acting for the owner switching it on links once (Bot: a desk on my Live channel); never a stream that names its slot', async () => {
+    const bot = serviceToken('bot', ['openre.stream.write', 'openre.stream.read']);
+    const made = await request(api.base, 'POST', '/api/v1/streams', { token: bot, headers: { 'X-OV-Subject': OWNER }, body: { title: 'desk-pc desk', mirror_to_live: false, playback_visibility: 'public', external_refs: [{ service: 'bot', type: 'machine_live', id: 'dev_01M5YGM39VC2RRGDQPRD6D4SHD' }] } });
+    assert.strictEqual(made.status, 201, made.text);
+    assert.strictEqual(made.body.live, undefined, 'never at create');
+    const id = made.body.stream.id;
+    let before = liveCalls.length;
+    const on = await request(api.base, 'PATCH', `/api/v1/streams/${id}`, { token: bot, headers: { 'X-OV-Subject': OWNER }, body: { mirror_to_live: true } });
+    assert.strictEqual(on.status, 200, on.text);
+    assert.deepStrictEqual(on.body.live, { linked: true, channel_url: 'https://openvibe.live/@owner' });
+    assert.strictEqual(on.body.stream.mirror_to_live, true);
+    assert.strictEqual(liveCalls.length, before + 1);
+    assert.strictEqual(liveCalls[liveCalls.length - 1].subject, OWNER, 'the owner\'s channel');
+    await request(api.base, 'PATCH', `/api/v1/streams/${id}`, { token: bot, headers: { 'X-OV-Subject': OWNER }, body: { mirror_to_live: true } });
+    assert.strictEqual(liveCalls.length, before + 1, 'already linked');
+    // Live's own slot stream names its slot: switching mirror_to_live on never asks Live for another one.
+    const live = serviceToken('live', ['openre.stream.write', 'openre.stream.read']);
+    const slot = await request(api.base, 'POST', '/api/v1/streams', { token: live, headers: { 'X-OV-Subject': OWNER }, body: { title: 'A Live slot', external_refs: [{ service: 'live', type: 'managed_stream', id: '9002' }] } });
+    before = liveCalls.length;
+    const relink = await request(api.base, 'PATCH', `/api/v1/streams/${slot.body.stream.id}`, { token: live, headers: { 'X-OV-Subject': OWNER }, body: { mirror_to_live: true } });
+    assert.strictEqual(relink.status, 200, relink.text);
+    assert.strictEqual(relink.body.live, undefined);
+    assert.strictEqual(liveCalls.length, before);
 });
 
 t('teardown', async () => { await api.close(); });
