@@ -72,9 +72,10 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
     const nav = {
         service: 'openre',
         apiBase: NETWORK_URL,
+        // The two places, with icons (the owner, 2026-10-28: navbars that say what matters at a glance).
         links: [
-            { label: 'Streams', href: '/streams' },
-            { label: 'Sessions', href: '/sessions' },
+            { label: 'Streams', href: '/streams', icon: 'fa-tower-broadcast' },
+            { label: 'Sessions', href: '/sessions', icon: 'fa-clock-rotate-left' },
         ],
         sessionUrl: '/auth/me',
         loginUrl: `/auth/login?next=${encodeURIComponent(canonicalPath)}`,
