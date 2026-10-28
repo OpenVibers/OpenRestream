@@ -94,8 +94,8 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
         try {
             const data = await tokenGrant({ grant_type: 'authorization_code', redirect_uri: config.oauth.redirectUri, code });
             setSession(res, data.access_token, data.refresh_token);
-            // Whatever this browser kept of the site was drawn for a guest: drop it.
-            res.set('Clear-Site-Data', '"cache"');
+            // No Clear-Site-Data here or on sign-out: Chrome holds such an answer (and the cookies it sets) until the
+            // cache is cleared, which on phones left people on the account chooser with no session (2026-10-28).
             return res.redirect(next);
         } catch (err) {
             return res.status(502).type('text/plain').send(`Sign-in failed: ${err.message}`);
@@ -106,7 +106,6 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
         res.clearCookie(ACCESS, { path: '/' });
         res.clearCookie(REFRESH, { path: '/auth' });
         res.cookie(HINT, 'guest', { ...base, httpOnly: false, path: '/', maxAge: 365 * 24 * 60 * 60 * 1000 });
-        res.set('Clear-Site-Data', '"cache"');
         res.redirect(sanitizeNext(req.query.next, config));
     });
 
