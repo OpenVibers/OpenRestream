@@ -24,7 +24,8 @@ function createDiscoveryRoutes({ config, releaseLastmod }) {
     const abs = (p) => seo.absolute(p, config.baseUrl);
 
     router.get('/robots.txt', (_req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(
-        seo.robotsTxt({ sitemaps: [abs('/sitemap.xml')], disallow: DISALLOW })));
+        seo.robotsTxt({ sitemaps: [abs('/sitemap.xml')], disallow: DISALLOW })
+        + `# Agent manifest: ${abs('/.well-known/agent.json')}\n`));
 
     router.get('/sitemap.xml', (_req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders()).send(
         seo.sitemapXml(PUBLIC_PATHS.map((loc) => ({ loc: abs(loc), lastmod: releaseLastmod })))));
