@@ -2,6 +2,8 @@
 const ovServe = require('openvibe-shared/serve');
 const seo = require('openvibe-shared/seo');
 const social = require('openvibe-shared/social');
+const { TWIN_PATH_RE } = require('../agent-pages');
+const { linkHeaderTags } = require('openvibe-shared/agent-layer');
 /**
  * Page shell for openre.stream: server-rendered HTML that works without JavaScript, with the shared
  * OpenVibe Frame (theme loader, navbar and footer from openvibe.network, footer SSR from the
@@ -69,6 +71,8 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
         image: indexable ? social.url('openre') : null,
         jsonLd: indexable ? jsonLd : null,
     });
+    // A public page names its Markdown twin (openvibe-shared/agent-layer); a signed-in owner page has none.
+    const twinHead = TWIN_PATH_RE.test(canonicalPath.split('?')[0]) ? linkHeaderTags(canonical, '/llms.txt').head : '';
     const nav = {
         service: 'openre',
         apiBase: NETWORK_URL,
@@ -98,6 +102,7 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${seoHead}
+${twinHead}
 ${icon}
 <script src="${ovServe.url('theme-loader.js')}" defer></script>
 <style>${CSS}</style>

@@ -163,7 +163,28 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
     app.use('/auth', createSsoRoutes({ config, auth, fetchImpl }));
     // Crawl and machine-readability artifacts (robots.txt, sitemap.xml, llms.txt): openvibe-shared/seo.
     app.use('/', createDiscoveryRoutes({ config, releaseLastmod: release.full().released_at === release.full().booted_at ? undefined : release.full().released_at }));
-    app.use('/', createUiRouter({ rt, auth, limits: actorLimits, liveLink }));
+    // The agent layer (openvibe-shared/agent-layer): /.well-known/agent.json, and the Markdown twins of the two
+    // public pages (the front page and the update log). Entered only for the manifest exactly (the rest of
+    // /.well-known/ belongs to the app) and a twin request — a `.md` path, ?format=markdown or an explicit
+    // text/markdown preference — because the layer renders pages signed out and the streams, destinations and
+    // sessions pages are one owner's data. It comes before the UI routes so `/index.md` is not read as a missing
+    // page; the pages name their own twins in the head and the Link header (server/ui/layout.js, server/ui/routes.js).
+    {
+        const uiRoutes = createUiRouter({ rt, auth, limits: actorLimits, liveLink });
+        const agentRouter = express.Router();
+        require('openvibe-shared/agent-layer').mount(agentRouter, {
+            descriptor: require('./agent-descriptor'),
+            render: require('./agent-pages').createAgentPages({ router: uiRoutes, host: new URL(config.baseUrl).hostname }).renderPublicPage,
+        });
+        app.use('/', (req, res, next) => {
+            if (req.path === '/.well-known/agent.json') return agentRouter(req, res, next);
+            const p = String(req.path || '');
+            if (p.endsWith('.md') || (req.query && req.query.format === 'markdown')
+                || req.accepts(['html', 'text/markdown']) === 'text/markdown') return agentRouter(req, res, next);
+            return next();
+        });
+        app.use('/', uiRoutes);
+    }
 
     app.use((req, res) => contracts.http.sendProblem(res, 404, 'openre.not_found', { detail: `no route ${req.method} ${req.path}`, ctx: req.ov }));
     // eslint-disable-next-line no-unused-vars

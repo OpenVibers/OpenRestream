@@ -20,6 +20,8 @@ const frame = require('openvibe-shared/frame');
 const showcase = require('openvibe-shared/showcase');
 const express = require('express');
 const { renderPage, esc } = require('./layout');
+const { TWIN_PATH_RE } = require('../agent-pages');
+const { linkHeaderTags } = require('openvibe-shared/agent-layer');
 const { StoreError } = require('../store/definitions');
 const { testDestination } = require('../destination-test');
 
@@ -61,7 +63,13 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
     // The API's per-person limits count these form posts too (a test, a new stream, a rotation): one budget per person.
     if (limits) router.use(limits);
 
-    const page = (req, res, o, status = 200) => res.status(status).type('html').send(renderPage({ ...o, user: req.caller.kind === 'user' ? req.caller : null, config }));
+    const page = (req, res, o, status = 200) => {
+        // The Link header names the same twin as the head, where the site sets headers; a signed-in page has none.
+        if (TWIN_PATH_RE.test(String(o.canonicalPath || '/').split('?')[0])) {
+            res.set('Link', linkHeaderTags(config.baseUrl + (o.canonicalPath || '/'), '/llms.txt').header);
+        }
+        return res.status(status).type('html').send(renderPage({ ...o, user: req.caller.kind === 'user' ? req.caller : null, config }));
+    };
     const csrfField = (req) => `<input type="hidden" name="_csrf" value="${esc(csrfFor(req.caller.token))}">`;
     const form = (req, action, inner, { cls = '', confirm } = {}) => `<form method="post" action="${esc(action)}" class="${cls}"${confirm ? ` onsubmit="return confirm('${esc(confirm)}')"` : ''}>${csrfField(req)}${inner}</form>`;
 
