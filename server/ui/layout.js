@@ -52,6 +52,11 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore .ore-option input{margin:.3em 0 0;accent-color:var(--ore-accent);flex:none}.ore .ore-option strong{display:block}.ore .ore-option .muted{display:block;font-size:.86rem;margin-top:2px}
 .ore form:has(input[name=record_to][value=videos]:checked) .ore-live-only{display:none}
 @media (max-width:640px){.ore th:nth-child(n+4),.ore td:nth-child(n+4){display:none}}
+/* Touch targets on phones (fleet audit, 2026-10-29): touch pointers only. */
+@media (pointer: coarse) {
+  .ore-faq summary { min-height: 44px; }
+}
+
 `;
 
 const DESCRIPTION = 'OpenRestream: go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once, with OpenVibe Live on by default.';
