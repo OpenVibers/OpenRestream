@@ -186,7 +186,13 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
         app.use('/', uiRoutes);
     }
 
-    app.use((req, res) => contracts.http.sendProblem(res, 404, 'openre.not_found', { detail: `no route ${req.method} ${req.path}`, ctx: req.ov }));
+    app.use((req, res) => {
+        if (req.path.startsWith('/api/') || req.path.startsWith('/internal/') || req.path.startsWith('/oauth/') || req.accepts(['application/json', 'text/html']) !== 'text/html') {
+            return contracts.http.sendProblem(res, 404, 'openre.not_found', { detail: `no route ${req.method} ${req.path}`, ctx: req.ov });
+        }
+        return res.status(404).type('html').set('Cache-Control', 'no-cache').set('X-Robots-Tag', 'noindex')
+            .send(require('./ui/not-found').renderNotFound({ config }));
+    });
     // eslint-disable-next-line no-unused-vars
     app.use((err, req, res, _next) => {
         if (err.type === 'entity.parse.failed') return contracts.http.sendProblem(res, 400, 'openre.bad_json', { detail: 'request body is not valid JSON', ctx: req.ov });
