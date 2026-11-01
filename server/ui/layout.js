@@ -31,6 +31,9 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
 .ore-stats{margin:0;display:grid;gap:10px}.ore-stats div{border:1px solid var(--ore-line);border-radius:12px;padding:12px 16px;background:var(--bg-card,#131c2e)}
 .ore-stats dt{font-size:1.25rem;font-weight:700}.ore-stats dd{margin:2px 0 0;color:var(--ore-muted);font-size:.92rem}
+.ore-tier-grid{margin:14px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:1px;border:1px solid var(--ore-line);border-radius:14px;overflow:hidden;background:var(--ore-line)}
+.ore-tier-grid div{padding:12px 16px;background:var(--bg-card,#131c2e)}.ore-tier-grid dt{font-size:.74rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ore-muted)}
+.ore-tier-grid dd{margin:4px 0 0;font-size:.95rem;line-height:1.45}
 .ore-faq details{border-bottom:1px solid var(--ore-line);padding:.75rem 0}.ore-faq details:first-of-type{border-top:1px solid var(--ore-line)}
 .ore-faq summary{cursor:pointer;font-weight:600;list-style-position:inside}.ore-faq summary:hover{color:#93c5fd}.ore-faq details p{margin:.5rem 0 0;color:var(--ore-muted);max-width:46rem}
 .ore table{width:100%;border-collapse:collapse;font-size:.92rem}.ore th,.ore td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--ore-line);vertical-align:top}
