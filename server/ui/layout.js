@@ -55,6 +55,9 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore .ore-option{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border:1px solid var(--ore-line);border-radius:8px;background:var(--ore-field);color:var(--ore-text);font-size:.95rem;cursor:pointer}
 .ore .ore-option:has(input:checked){border-color:var(--ore-accent);box-shadow:inset 0 0 0 1px var(--ore-accent)}.ore .ore-option:has(input:focus-visible){outline:2px solid var(--ore-accent);outline-offset:2px}
 .ore .ore-option input{margin:.3em 0 0;accent-color:var(--ore-accent);flex:none}.ore .ore-option strong{display:block}.ore .ore-option .muted{display:block;font-size:.86rem;margin-top:2px}
+.ore .nf-links{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.ore .nf-links a{display:inline-block;padding:9px 16px;border-radius:999px;border:1px solid var(--ore-line);background:var(--ore-panel);color:var(--ore-text);text-decoration:none;font-weight:600}
+.ore .nf-links a:hover,.ore .nf-links a:focus-visible{border-color:var(--ore-accent);outline:0}
 .ore form:has(input[name=record_to][value=videos]:checked) .ore-live-only{display:none}
 @media (max-width:640px){.ore th:nth-child(n+4),.ore td:nth-child(n+4){display:none}}
 /* Touch targets on phones (fleet audit, 2026-10-29): touch pointers only. */
