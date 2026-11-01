@@ -22,12 +22,14 @@ function esc(v) {
 }
 
 const CSS = `
-:root{--ore-bg:#0d131d;--ore-panel:#141c2b;--ore-line:#233049;--ore-text:#e6ecf5;--ore-muted:#93a2bd;--ore-accent:#3b82f6;--ore-ok:#22c55e;--ore-warn:#f59e0b;--ore-bad:#ef4444}
+/* The reader's theme (theme-loader), with the old dark palette as the fallback: a fixed dark page around Shared's themed
+   sections drew white text on white cards on light themes (2026-11-01). */
+:root{--ore-bg:var(--bg-primary,#0d131d);--ore-panel:var(--bg-secondary,#141c2b);--ore-line:var(--border,#233049);--ore-text:var(--text-primary,#e6ecf5);--ore-muted:var(--text-secondary,#93a2bd);--ore-accent:var(--accent,#3b82f6);--ore-ok:var(--success-text,#22c55e);--ore-warn:var(--warning-text,#f59e0b);--ore-bad:var(--danger-text,#ef4444);--ore-field:var(--bg-input,#0a0f18)}
 body{margin:0;background:var(--ore-bg);color:var(--ore-text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
 main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right:0}
 .ore h1{font-size:1.6rem;margin:.2em 0 .4em}.ore h2{font-size:1.15rem;margin:1.6em 0 .6em}.ore h3{font-size:1rem;margin:1em 0 .4em}
-.ore a{color:#93c5fd}.ore p.muted,.ore .muted{color:var(--ore-muted)}
+.ore a{color:color-mix(in srgb,var(--accent,#3b82f6) 60%,var(--text-primary,#e6ecf5))}.ore p.muted,.ore .muted{color:var(--ore-muted)}
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
 .ore-stats{margin:0;display:grid;gap:10px}.ore-stats div{border:1px solid var(--ore-line);border-radius:12px;padding:12px 16px;background:var(--bg-card,#131c2e)}
 .ore-stats dt{font-size:1.25rem;font-weight:700}.ore-stats dd{margin:2px 0 0;color:var(--ore-muted);font-size:.92rem}
@@ -35,22 +37,22 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore-tier-grid div{padding:12px 16px;background:var(--bg-card,#131c2e)}.ore-tier-grid dt{font-size:.74rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ore-muted)}
 .ore-tier-grid dd{margin:4px 0 0;font-size:.95rem;line-height:1.45}
 .ore-faq details{border-bottom:1px solid var(--ore-line);padding:.75rem 0}.ore-faq details:first-of-type{border-top:1px solid var(--ore-line)}
-.ore-faq summary{cursor:pointer;font-weight:600;list-style-position:inside}.ore-faq summary:hover{color:#93c5fd}.ore-faq details p{margin:.5rem 0 0;color:var(--ore-muted);max-width:46rem}
+.ore-faq summary{cursor:pointer;font-weight:600;list-style-position:inside}.ore-faq summary:hover{color:color-mix(in srgb,var(--accent,#3b82f6) 60%,var(--text-primary,#e6ecf5))}.ore-faq details p{margin:.5rem 0 0;color:var(--ore-muted);max-width:46rem}
 .ore table{width:100%;border-collapse:collapse;font-size:.92rem}.ore th,.ore td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--ore-line);vertical-align:top}
 .ore code,.ore .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.88rem;word-break:break-all}
-.ore .secret{display:block;background:#0a0f18;border:1px dashed var(--ore-warn);padding:10px;border-radius:8px;user-select:all}
+.ore .secret{display:block;background:var(--ore-field);border:1px dashed var(--ore-warn);padding:10px;border-radius:8px;user-select:all}
 .ore form.inline{display:inline}.ore label{display:block;margin:.4em 0 .15em;color:var(--ore-muted);font-size:.88rem}
-.ore input[type=text],.ore input[type=password],.ore input[type=number],.ore select,.ore textarea{width:100%;box-sizing:border-box;background:#0a0f18;color:var(--ore-text);border:1px solid var(--ore-line);border-radius:6px;padding:7px 9px}
+.ore input[type=text],.ore input[type=password],.ore input[type=number],.ore select,.ore textarea{width:100%;box-sizing:border-box;background:var(--ore-field);color:var(--ore-text);border:1px solid var(--ore-line);border-radius:6px;padding:7px 9px}
 .ore .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 :where(.ore) button{background:var(--accent-strong,#3472d8);color:var(--on-accent-strong,#fff);border:0;border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:600;margin:6px 6px 0 0}
-:where(.ore) button.secondary{background:#334155;color:#fff}:where(.ore) button.danger{background:#dc2626;color:#fff}
-.ore .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.8rem;font-weight:600;background:#334155}
-.ore .pill.live,.ore .pill.ok{background:var(--ore-ok);color:#04110a}.ore .pill.starting,.ore .pill.ending,.ore .pill.pending,.ore .pill.error,.ore .pill.draining{background:var(--ore-warn);color:#1a1000}
+:where(.ore) button.secondary{background:var(--bg-tertiary,#334155);color:var(--ore-text)}:where(.ore) button.danger{background:#dc2626;color:#fff}
+.ore .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.8rem;font-weight:600;background:var(--bg-tertiary,#334155)}
+.ore .pill.live,.ore .pill.ok{background:#22c55e;color:#04110a}.ore .pill.starting,.ore .pill.ending,.ore .pill.pending,.ore .pill.error,.ore .pill.draining{background:#f59e0b;color:#1a1000}
 .ore .pill.failed,.ore .pill.lost{background:#b91c1c;color:#fff}
 .ore .flash{border-left:4px solid var(--ore-accent);padding:8px 12px;background:var(--ore-panel);margin:12px 0}.ore .flash.bad{border-color:var(--ore-bad)}
 .ore .ore-choice{border:0;padding:0;margin:.4em 0 .7em}.ore .ore-choice legend{color:var(--ore-muted);font-size:.88rem;padding:0;margin-bottom:.35em}
 .ore .ore-options{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
-.ore .ore-option{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border:1px solid var(--ore-line);border-radius:8px;background:#0a0f18;color:var(--ore-text);font-size:.95rem;cursor:pointer}
+.ore .ore-option{display:flex;gap:10px;align-items:flex-start;margin:0;padding:10px 12px;border:1px solid var(--ore-line);border-radius:8px;background:var(--ore-field);color:var(--ore-text);font-size:.95rem;cursor:pointer}
 .ore .ore-option:has(input:checked){border-color:var(--ore-accent);box-shadow:inset 0 0 0 1px var(--ore-accent)}.ore .ore-option:has(input:focus-visible){outline:2px solid var(--ore-accent);outline-offset:2px}
 .ore .ore-option input{margin:.3em 0 0;accent-color:var(--ore-accent);flex:none}.ore .ore-option strong{display:block}.ore .ore-option .muted{display:block;font-size:.86rem;margin-top:2px}
 .ore form:has(input[name=record_to][value=videos]:checked) .ore-live-only{display:none}
