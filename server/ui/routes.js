@@ -77,7 +77,7 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
         if (req.caller.kind === 'user' && req.caller.subject) return true;
         page(req, res, {
             title: 'Sign in', canonicalPath: req.path,
-            body: `<h1>Sign in</h1><p>OpenRestream uses your OpenVibe account.</p><p><a href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
+            body: `<h1>Sign in</h1><p>OpenRestream uses your OpenVibe account.</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
         }, 401);
         return false;
     }
