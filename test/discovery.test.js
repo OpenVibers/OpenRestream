@@ -73,6 +73,12 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         const r = await request(api.base, 'GET', '/');
         assert.strictEqual(r.status, 200);
         assert.match(r.text, /<h1>Go live once\.<span class="sc-accent"> Stream everywhere\.<\/span><\/h1>/);
+        // The free tier's real limits, as the service runs them (market outcome 1): the cap from its own config.
+        const tier = (/<section class="sc-sec ore-tier"[\s\S]*?<\/section>/.exec(r.text) || [''])[0];
+        assert.match(tier, /<h2 id="ore-tier-h">The free tier, in numbers<\/h2>/);
+        assert.match(tier, /<dt>Destinations<\/dt><dd>Up to 10 a stream, each with its own health, logs and retries<\/dd>/);
+        assert.match(tier, /<dt>Quality<\/dt><dd>What you send: a stream from OBS is copied, never re-encoded<\/dd>/);
+        assert.match(tier, /<dt>Out<\/dt><dd>RTMP, RTMPS and SRT<\/dd>/);
         assert.match(r.text, /<meta name="description" content="Go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once/);
         const desc = /<meta name="description" content="([^"]*)"/.exec(r.text)[1];
         assert.ok(desc.length <= 160, `the description fits a search result (${desc.length})`);

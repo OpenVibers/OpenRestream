@@ -167,6 +167,26 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
         return `rtmp://${host}${r.publicPort && Number(r.publicPort) !== 1935 ? `:${r.publicPort}` : ''}/live`;
     };
 
+    /**
+     * The free tier, in numbers (market outcome 1: state the real limits, not "free"): every figure is what the service
+     * does today, the destination cap read from its own config, so the page can never promise more than it runs.
+     */
+    function freeTier() {
+        const max = Number(config.outputs && config.outputs.maxPerStream) || 10;
+        const rows = [
+            ['Price', '$0. There is no paid tier'],
+            ['Destinations', `Up to ${max} a stream, each with its own health, logs and retries`],
+            ['Quality', 'What you send: a stream from OBS is copied, never re-encoded'],
+            ['Watermark', 'None'],
+            ['In', 'RTMP from OBS or any encoder; or your browser, on OpenVibe.Live'],
+            ['Out', 'RTMP, RTMPS and SRT'],
+            ['Recording', 'Per stream: a VOD, clips only, or nothing, saved to your OpenVibe.Video'],
+            ['Minimum', 'None: no follower, subscriber or eligibility threshold'],
+        ];
+        return `<section class="sc-sec ore-tier" aria-labelledby="ore-tier-h"><h2 id="ore-tier-h">The free tier, in numbers</h2>
+<dl class="ore-tier-grid">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>`;
+    }
+
     function frontPage(cfg, f) {
         const live = cfg.liveUrl;
         const n = (v) => Number(v).toLocaleString('en-US');
@@ -197,7 +217,7 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
                 { icon: 'ov:code', title: 'Open API and SDK', text: 'Streams, keys, sessions and destinations through the OpenVibe API and SDK, for your own tools and bots.' },
                 { icon: 'ov:community', title: 'Free, open, no minimum', text: 'Any OpenVibe account can restream from the first minute: no follower, subscriber or eligibility threshold, and the code is on GitHub.' },
             ],
-        }) + showcase.features({
+        }) + freeTier() + showcase.features({
             id: 'destinations',
             title: 'Where it can stream',
             lede: 'Add each destination once, test it, and it goes live with you every time.',
