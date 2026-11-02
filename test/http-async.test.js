@@ -41,3 +41,5 @@ t('a rejecting store call in an async GET answers 500, with no unhandled rejecti
         await api.close();
     }
 });
+
+t.run();
