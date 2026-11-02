@@ -70,7 +70,8 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 const DESCRIPTION = 'OpenRestream: go live once from OBS and restream to Twitch, YouTube, Kick and any RTMP or SRT server at once, with OpenVibe Live on by default.';
 
 function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,nofollow', config, description = DESCRIPTION, styles = [], jsonLd = null }) {
-    const pageTitle = title ? `${title} · ${SITE}` : `${SITE} — go live once, stream everywhere`;
+    // A title that already names the site is not suffixed again ("What shipped on OpenRestream · OpenRestream").
+    const pageTitle = title ? (title.includes(SITE) ? title : `${title} · ${SITE}`) : `${SITE} — go live once, stream everywhere`;
     const canonical = config.baseUrl + canonicalPath;
     // Indexable (public) pages are the only ones a crawler shares: they carry the site's card and,
     // where the route supplies one, JSON-LD. The signed-in owner pages stay noindex with neither.
