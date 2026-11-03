@@ -39,6 +39,24 @@ function createApp({ rt, auth, keys, log = console, fetchImpl }) {
     app.use(cookieParser());
     // This site's own pinned copy of the OpenVibe Frame's browser files (openvibe-shared/serve).
     app.use('/shared', require('openvibe-shared/serve').handler());
+    // Terms, Privacy and DMCA in this site's own words (openvibe-shared/legal, profile 'service'; 11-03: the footer's
+    // legal links answered 404 here). The facts must match the code: change both together.
+    const legal = require('openvibe-shared/legal');
+    app.get(legal.PATHS, legal.handler({
+        "host": "openre.stream",
+        "name": "OpenRestream",
+        "id": "openre",
+        "service": "openre",
+        "profile": "service",
+        "what": "Open restreaming: one stream to Twitch, YouTube, Kick and any RTMP or SRT server at once, with OpenVibe Live on by default.",
+        "makes": [
+                "the destinations you send your stream to and their stream keys",
+                "the history of your restreams"
+        ],
+        "processors": [
+                "the streaming platforms you send your stream to"
+        ]
+    }));
 
     // Restore drill (OPENRE_DRILL, ovhost drill): serve reads from the restored copy and nothing
     // else. No writes (they would only change the copy, but a drill must not look like it works),
