@@ -60,8 +60,19 @@ function createDiscoveryRoutes({ config, releaseLastmod }) {
                 ] },
             ],
         });
-    router.get('/llms.txt', (_req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(
-        seo.llmsTxt(llmsSite())));
+    // AGT-5: the home and /updates link their Markdown twins (openvibe-shared 4.108.0's markdown mode); the sitemap and
+    // robots.txt are files and keep their URL. The machine-readable files are ## Optional, last.
+    router.get('/llms.txt', (_req, res) => {
+        const d = llmsSite();
+        const machine = (d.sections || []).find((x) => x.title === 'Machine-readable');
+        res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(seo.llmsTxt({
+            ...d,
+            markdown: true,
+            base: config.baseUrl,
+            sections: (d.sections || []).filter((x) => x !== machine),
+            optional: [...(machine ? machine.links : []), { title: 'Full text for language models', url: abs('/llms-full.txt') }],
+        }));
+    });
     // The same, in full (SEO-33): what the site is, then every page llms.txt lists with what it holds.
     router.get('/llms-full.txt', (_req, res) => {
         const d = llmsSite();
