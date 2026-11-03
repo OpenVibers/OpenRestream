@@ -67,6 +67,21 @@ t('llms.txt is plain text, leads with open restreaming (OpenVibe Live on by defa
     }
 });
 
+t('llms-full.txt (SEO-33): the site in full, from the same descriptor as llms.txt', async () => {
+    const api = await bootApi({});
+    try {
+        const r = await request(api.base, 'GET', '/llms-full.txt');
+        assert.strictEqual(r.status, 200);
+        assert.match(r.headers.get('content-type'), /^text\/plain/);
+        assert.ok(r.text.startsWith('# OpenRestream\n'));
+        assert.ok(r.text.length > 500, `${r.text.length} characters`);
+        assert.match(r.text, /## About\n\n### OpenRestream\n/);
+        assert.match(r.text, /OpenRestream is also the ingest and restream engine of the OpenVibe network/, 'the details, joined as lines');
+    } finally {
+        await api.close();
+    }
+});
+
 t('the front page leads with open restreaming, links to Live for browser go-live, and says what runs here', async () => {
     const api = await bootApi({ env: { BASE_URL: 'https://openre.stream' } });
     try {

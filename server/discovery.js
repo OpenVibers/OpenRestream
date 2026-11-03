@@ -30,8 +30,8 @@ function createDiscoveryRoutes({ config, releaseLastmod }) {
     router.get('/sitemap.xml', (_req, res) => res.type('application/xml').set('Cache-Control', cache.htmlHeaders()).send(
         seo.sitemapXml(PUBLIC_PATHS.map((loc) => ({ loc: abs(loc), lastmod: releaseLastmod })))));
 
-    router.get('/llms.txt', (_req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(
-        seo.llmsTxt({
+    // The site as llms.txt describes it, shared by /llms.txt and /llms-full.txt (SEO-33).
+    const llmsSite = () => ({
             name: 'OpenRestream',
             summary: 'OpenRestream (openre.stream) is an open restreaming platform: send one stream from OBS or any RTMP encoder and it goes to Twitch, YouTube, Kick and any RTMP, RTMPS or SRT server at the same time, with the person\'s OpenVibe Live channel on by default. It is free and open source, with no follower minimum. With no OBS, people go live from their browser on OpenVibe.Live (openvibe.live, the Go Live button).',
             details: [
@@ -59,7 +59,20 @@ function createDiscoveryRoutes({ config, releaseLastmod }) {
                     { title: 'robots.txt', url: abs('/robots.txt') },
                 ] },
             ],
-        })));
+        });
+    router.get('/llms.txt', (_req, res) => res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(
+        seo.llmsTxt(llmsSite())));
+    // The same, in full (SEO-33): what the site is, then every page llms.txt lists with what it holds.
+    router.get('/llms-full.txt', (_req, res) => {
+        const d = llmsSite();
+        res.type('text/plain').set('Cache-Control', cache.htmlHeaders()).send(seo.llmsFull({
+            site: d.name, summary: d.summary, base: abs('/'),
+            sections: [
+                { title: 'About', pages: [{ title: d.name, url: abs('/'), text: [d.summary, Array.isArray(d.details) ? d.details.join('\n') : d.details].filter(Boolean).join('\n\n') }] },
+                ...(d.sections || []).map((x) => ({ title: x.title, pages: (x.links || []).map((l) => ({ title: l.title, url: l.url, text: l.note || '' })) })),
+            ],
+        }));
+    });
 
     return router;
 }
