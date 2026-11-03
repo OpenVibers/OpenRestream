@@ -62,6 +62,12 @@ t('llms.txt is plain text, leads with open restreaming (OpenVibe Live on by defa
         // Only the RTMP ingest and restream workers run in production: WHIP and JSMPEG are ported, not served yet.
         assert.match(r.text, /WHIP \(RFC 9725\) to https:\/\/ingest\.openre\.stream\/whip\/<ingest key>, open to browsers/);
         assert.doesNotMatch(r.text, /do not run in production yet/, 'the workers run');
+        // AGT-5: own pages at their Markdown twins, other sites and files as they are, ## Optional last.
+        assert.match(r.text, /\[OpenRestream home\]\(https?:\/\/[^)]*\/index\.md\)/);
+        assert.match(r.text, /\[What shipped\]\(https?:\/\/[^)]*\/updates\.md\)/);
+        assert.ok(r.text.includes('(https://github.com/OpenVibers/OpenRestream)'));
+        assert.match(r.text, /\(https?:\/\/[^)]*\/sitemap\.xml\)/);
+        assert.ok(r.text.includes('\n## Optional\n') && r.text.lastIndexOf('\n## ') === r.text.indexOf('\n## Optional\n'), 'Optional is last');
     } finally {
         await api.close();
     }
