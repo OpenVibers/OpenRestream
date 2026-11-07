@@ -15,6 +15,7 @@
  */
 const { PLATFORMS, markSvg } = require('./platforms');
 const crypto = require('crypto');
+const cache = require('openvibe-shared/cache-policy');
 const ovServe = require('openvibe-shared/serve');
 const seo = require('openvibe-shared/seo');
 const frame = require('openvibe-shared/frame');
@@ -69,6 +70,11 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
         if (TWIN_PATH_RE.test(String(o.canonicalPath || '/').split('?')[0])) {
             res.set('Link', linkHeaderTags(config.baseUrl + (o.canonicalPath || '/'), '/llms.txt').header);
         }
+        // A signed-out page is the same for everybody: a minute of reuse with a stale copy while the
+        // next one is fetched. A signed-in page names the person, so it is private and uncached. No
+        // page set a policy before, so every visit revalidated the whole page.
+        res.vary('Cookie');
+        if (!res.get('Cache-Control')) res.set('Cache-Control', cache.htmlHeaders(req.caller.kind === 'user' ? { private: true } : { maxAge: 60 }));
         return res.status(status).type('html').send(renderPage({ ...o, user: req.caller.kind === 'user' ? req.caller : null, config }));
     };
     const csrfField = (req) => `<input type="hidden" name="_csrf" value="${esc(csrfFor(req.caller.token))}">`;
