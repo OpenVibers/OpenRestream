@@ -33,6 +33,57 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore .card{background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:10px;padding:14px 16px;margin:12px 0}
 .ore-stats{margin:0;display:grid;gap:10px}.ore-stats div{border:1px solid var(--ore-line);border-radius:12px;padding:12px 16px;background:var(--bg-card,#131c2e)}
 .ore-stats dt{font-size:1.25rem;font-weight:700}.ore-stats dd{margin:2px 0 0;color:var(--ore-muted);font-size:.92rem}
+/* The hero (11-07): the signal flow, one stream in, every platform out, a switch each. */
+.ore-hero{display:grid;gap:28px;align-items:center;padding:28px 0 8px}
+@media (min-width:900px){.ore-hero{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:40px;padding:56px 0 16px}}
+.ore-eyebrow{margin:0 0 10px;font-size:.78rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:color-mix(in srgb,var(--accent,#3b82f6) 70%,var(--ore-text))}
+.ore-hero h1{margin:0;font-size:clamp(2.1rem,6vw,3.6rem);line-height:1.02;letter-spacing:-.045em;text-wrap:balance}
+.ore-accent{background:linear-gradient(100deg,#9146FF,#FF0033 45%,#53FC18 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ore-lede{margin:16px 0 0;max-width:52ch;font-size:1.06rem;line-height:1.6;color:var(--ore-muted)}
+.ore-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.ore-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:14px;border:1px solid var(--ore-line);color:var(--ore-text)!important;font-weight:750;text-decoration:none;transition:transform .15s,border-color .15s}
+.ore-btn:hover{border-color:color-mix(in srgb,var(--accent,#3b82f6) 55%,var(--ore-line));transform:translateY(-1px)}
+.ore-btn-primary{background:var(--accent,#3b82f6);border-color:transparent;color:var(--on-accent,#fff)!important;box-shadow:0 12px 30px -14px var(--accent,#3b82f6)}
+.ore-note{margin:14px 0 0;font-size:.86rem;color:var(--ore-muted)}
+.ore-flow{position:relative;display:grid;grid-template-columns:minmax(0,104px) 22px minmax(0,118px) minmax(230px,1fr);align-items:center;gap:0;padding:22px;border:1px solid var(--ore-line);border-radius:24px;background:radial-gradient(120% 120% at 0% 50%,color-mix(in srgb,var(--accent,#3b82f6) 14%,transparent),transparent 60%),var(--ore-panel);counter-reset:ore-on}
+.ore-src,.ore-hub{display:grid;justify-items:center;gap:3px;text-align:center;padding:12px 8px;border-radius:18px;background:var(--ore-bg);border:1px solid var(--ore-line);min-width:0}
+.ore-src b,.ore-hub b{font-size:.84rem;letter-spacing:-.01em}.ore-src small,.ore-hub small{font-size:.72rem;color:var(--ore-muted);max-width:12ch}
+.ore-src-dot{width:12px;height:12px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 0 rgba(239,68,68,.6);animation:ore-rec 1.6s ease-out infinite}
+@keyframes ore-rec{70%{box-shadow:0 0 0 10px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.ore-trunk{height:3px;background:repeating-linear-gradient(90deg,var(--accent,#3b82f6) 0 10px,transparent 10px 22px);background-size:44px 3px;animation:ore-flow 1s linear infinite;border-radius:2px}
+.ore-hub{position:relative;border-color:color-mix(in srgb,var(--accent,#3b82f6) 45%,var(--ore-line))}
+.ore-hub-ring{width:30px;height:30px;border-radius:50%;border:3px solid var(--accent,#3b82f6);box-shadow:0 0 18px color-mix(in srgb,var(--accent,#3b82f6) 60%,transparent)}
+.ore-n::before{content:counter(ore-on)}
+.ore-total{margin:0;font-size:.78rem;font-weight:700;color:var(--ore-muted);text-align:center;max-width:14ch}
+@media (min-width:641px){.ore-src{grid-column:1;grid-row:1/3}.ore-trunk{grid-column:2;grid-row:1/3}.ore-hub{grid-column:3;grid-row:1;align-self:end}.ore-total{grid-column:3;grid-row:2;align-self:start;justify-self:center;margin-top:8px}.ore-dests{grid-column:4;grid-row:1/3;padding-left:6px}}
+.ore-n{color:var(--ore-text);font-weight:900}
+.ore-dests{list-style:none;margin:0;padding:0 0 0 0;display:grid;gap:6px}
+.ore .ore-dest label{margin:0;color:inherit;font-size:inherit;position:relative;display:grid;grid-template-columns:26px 26px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:42px;padding:0 10px 0 0;border-radius:12px;cursor:pointer}
+.ore-dest-in{position:absolute;opacity:0;pointer-events:none}
+.ore-dest:has(.ore-dest-in:checked){counter-increment:ore-on}
+.ore-wire{height:3px;border-radius:2px;background:color-mix(in srgb,var(--ore-text) 14%,transparent)}
+.ore-dest:has(.ore-dest-in:checked) .ore-wire{background:repeating-linear-gradient(90deg,var(--c) 0 8px,transparent 8px 18px);background-size:36px 3px;animation:ore-flow .9s linear infinite;animation-delay:calc(var(--i) * -.13s)}
+@keyframes ore-flow{to{background-position:36px 0}}
+.ore-dest-mark{display:grid;place-items:center;width:26px;height:26px;color:var(--c)}
+.ore-dest-mark svg{width:24px;height:24px}
+.ore-dest-ov{font-size:.72rem;font-weight:900;color:var(--accent,#3b82f6)}
+.ore-dest-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:.95rem;color:var(--ore-muted);transition:color .2s}
+.ore-dest:has(.ore-dest-in:checked) .ore-dest-name{color:var(--ore-text)}
+.ore-dest:not(:has(.ore-dest-in:checked)) .ore-dest-mark{filter:grayscale(1);opacity:.5}
+.ore-switch{position:relative;width:38px;height:22px;border-radius:999px;background:color-mix(in srgb,var(--ore-text) 18%,transparent);transition:background-color .2s}
+.ore-switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s cubic-bezier(.2,1.4,.4,1)}
+.ore-dest:has(.ore-dest-in:checked) .ore-switch{background:var(--c)}
+.ore-dest-own:has(.ore-dest-in:checked) .ore-switch{background:var(--accent,#3b82f6)}
+.ore-dest:has(.ore-dest-in:checked) .ore-switch::after{transform:translateX(16px)}
+.ore .ore-dest:has(.ore-dest-in:focus-visible) label{outline:2px solid var(--accent,#3b82f6);outline-offset:2px}
+.ore .ore-dest label:hover{background:color-mix(in srgb,var(--ore-text) 5%,transparent)}
+/* A phone: top to bottom (stream, then OpenRestream, then the switches), the wires short and to the left. */
+@media (max-width:640px){.ore-flow{grid-template-columns:1fr;justify-items:stretch;padding:16px;gap:0}.ore-src,.ore-hub{justify-self:center;grid-auto-flow:row}.ore-total{order:3;grid-column:1;grid-row:auto;justify-self:center;margin:10px 0 0}.ore-dests{order:4}.ore .ore-flow .ore-dest label{grid-template-columns:18px 26px minmax(0,1fr) auto;min-height:46px}.ore-trunk{justify-self:center;width:3px;height:22px;background:repeating-linear-gradient(180deg,var(--accent,#3b82f6) 0 8px,transparent 8px 16px);background-size:3px 32px;animation:ore-flow-v 1s linear infinite}.ore-dests{margin-top:12px}.ore-dest label{grid-template-columns:18px 26px minmax(0,1fr) auto;min-height:46px}}
+@keyframes ore-flow-v{to{background-position:0 32px}}
+.ore-logos{display:none;list-style:none;margin:14px 0 0;padding:0;gap:14px;align-items:center}.ore-logos li{display:grid;place-items:center;width:28px;height:28px;color:var(--c)}.ore-logos svg{width:26px;height:26px}.ore-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:640px){.ore-logos{display:flex}.ore-logos li:nth-child(3){width:44px}.ore-logos li:nth-child(3) svg{width:44px}}
+.ore-stats-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));margin:18px 0 6px}
+@media (prefers-reduced-motion:reduce){.ore-src-dot,.ore-trunk,.ore-dest .ore-wire{animation:none!important}}
 .ore-tier-grid{margin:14px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:1px;border:1px solid var(--ore-line);border-radius:14px;overflow:hidden;background:var(--ore-line)}
 .ore-tier-grid div{padding:12px 16px;background:var(--bg-card,#131c2e)}.ore-tier-grid dt{font-size:.74rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ore-muted)}
 .ore-tier-grid dd{margin:4px 0 0;font-size:.95rem;line-height:1.45}
