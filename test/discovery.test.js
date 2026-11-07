@@ -93,7 +93,12 @@ t('the front page leads with open restreaming, links to Live for browser go-live
     try {
         const r = await request(api.base, 'GET', '/');
         assert.strictEqual(r.status, 200);
-        assert.match(r.text, /<h1>Go live once\.<span class="sc-accent"> Stream everywhere\.<\/span><\/h1>/);
+        assert.match(r.text, /<h1 id="ore-hero-h">Go live once\.<br><span class="ore-accent">Stream everywhere\.<\/span><\/h1>/);
+        // The hero's signal flow (11-07): every platform with its own switch, the count by CSS, no script needed.
+        const flow = (/<div class="ore-flow"[\s\S]*?<\/ul>/.exec(r.text) || [''])[0];
+        for (const name of ['Twitch', 'YouTube', 'Kick', 'X', 'Facebook', 'TikTok', 'LinkedIn', 'OpenVibe']) assert.match(flow, new RegExp('<span class="ore-dest-name">' + name + '</span>'), name);
+        assert.match(flow, /<input type="checkbox" class="ore-dest-in" checked>/);
+        assert.doesNotMatch(flow, /<script/);
         // The free tier's real limits, as the service runs them (market outcome 1): the cap from its own config.
         const tier = (/<section class="sc-sec ore-tier"[\s\S]*?<\/section>/.exec(r.text) || [''])[0];
         assert.match(tier, /<h2 id="ore-tier-h">The free tier, in numbers<\/h2>/);

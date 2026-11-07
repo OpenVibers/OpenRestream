@@ -13,6 +13,7 @@
  * CSRF: every form carries a token derived from the session cookie (an attacker's page cannot
  * read the cookie, so it cannot produce the token); SameSite=Lax cookies are the second layer.
  */
+const { PLATFORMS, markSvg } = require('./platforms');
 const crypto = require('crypto');
 const ovServe = require('openvibe-shared/serve');
 const seo = require('openvibe-shared/seo');
@@ -196,18 +197,32 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
             [f.destinations, f.destinations === 1 ? 'destination added' : 'destinations added'],
             [f.sessions, f.sessions === 1 ? 'time gone live' : 'times gone live'],
         ].filter(([v]) => v > 0) : [];
-        return showcase.hero({
-            eyebrow: 'OpenRestream · open restreaming',
-            title: 'Go live once.', accent: 'Stream everywhere.',
-            lede: 'Send one stream from OBS or any RTMP encoder, and OpenRestream sends it to Twitch, YouTube, Kick and any RTMP, RTMPS or SRT server at the same time. Your OpenVibe Live channel is on by default, with chat, clips and VODs. It is free and open source, with no follower minimum.',
-            actions: [
-                { label: 'Start restreaming', href: '/streams', primary: true },
-                { label: 'No OBS? Go live from your browser', href: live },
-                { label: 'How browser streaming works', href: `${live}/docs/go-live-in-your-browser` },
-            ],
-            note: 'Alpha. RTMP ingest and RTMP, RTMPS and SRT restreaming run here. Going live from a browser happens on OpenVibe.Live for now.',
-            html: stats.length ? `<dl class="ore-stats">${stats.map(([v, d]) => `<div><dt>${n(v)}</dt><dd>${esc(d)}</dd></div>`).join('')}</dl>` : undefined,
-        }) + showcase.features({
+        // The hero (the owner, 11-07: "way cooler animations and effects … stand out … platforms front-facing and easy to
+        // see … switches … different on mobile versus desktop"): the signal itself. One stream goes in, OpenRestream fans
+        // it out, and each platform has its own switch; the wires carry pulses only while their switch is on, and the
+        // count says how many places you would be live. Checkboxes, :has() and a CSS counter: no script, so it works
+        // under any CSP and without JavaScript. Left to right on a wide screen, top to bottom on a phone.
+        const dests = PLATFORMS.map((pl, i) => `<li class="ore-dest" style="--c:${pl.color};--i:${i}"><label><input type="checkbox" class="ore-dest-in"${i < 3 ? ' checked' : ''}><span class="ore-wire" aria-hidden="true"></span><span class="ore-dest-mark">${markSvg(pl)}</span><span class="ore-dest-name">${esc(pl.name)}</span><span class="ore-switch" aria-hidden="true"></span></label></li>`).join('');
+        const flow = `<div class="ore-flow" role="group" aria-label="Try it: switch platforms on and off">
+<div class="ore-src"><span class="ore-src-dot" aria-hidden="true"></span><b>Your stream</b><small>OBS, any encoder, or your browser</small></div>
+<span class="ore-trunk" aria-hidden="true"></span>
+<div class="ore-hub"><span class="ore-hub-ring" aria-hidden="true"></span><b>OpenRestream</b></div>
+<ul class="ore-dests">${dests}<li class="ore-dest ore-dest-own" style="--c:var(--accent,#3b82f6);--i:${PLATFORMS.length}"><label><input type="checkbox" class="ore-dest-in" checked><span class="ore-wire" aria-hidden="true"></span><span class="ore-dest-mark ore-dest-ov" aria-hidden="true">OV</span><span class="ore-dest-name">OpenVibe</span><span class="ore-switch" aria-hidden="true"></span></label></li></ul>
+<p class="ore-total" aria-live="polite">Live on <span class="ore-n"></span> places at once</p>
+</div>`;
+        const hero = `<section class="ore-hero" aria-labelledby="ore-hero-h">
+<div class="ore-hero-copy">
+<p class="ore-eyebrow">Open restreaming · free · no follower minimum</p>
+<h1 id="ore-hero-h">Go live once.<br><span class="ore-accent">Stream everywhere.</span></h1>
+<ul class="ore-logos" aria-label="Streams to">${PLATFORMS.map((pl) => `<li style="--c:${pl.color}" title="${esc(pl.name)}">${markSvg(pl)}<span class="ore-sr">${esc(pl.name)}</span></li>`).join('')}</ul>
+<p class="ore-lede">Send one stream from OBS or your browser. OpenRestream sends it to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, and your OpenVibe Live channel comes with chat, clips and VODs.</p>
+<div class="ore-actions"><a class="ore-btn ore-btn-primary" href="/streams">Start restreaming</a><a class="ore-btn" href="${esc(live)}">Go live from your browser</a></div>
+<p class="ore-note">Alpha: RTMP in; RTMP, RTMPS and SRT out. Going live from a browser happens on OpenVibe.Live for now (<a href="${esc(live)}/docs/go-live-in-your-browser">how it works</a>).</p>
+</div>
+${flow}
+</section>
+${stats.length ? `<dl class="ore-stats ore-stats-strip">${stats.map(([v, d]) => `<div><dt>${n(v)}</dt><dd>${esc(d)}</dd></div>`).join('')}</dl>` : ''}`;
+        return hero + showcase.features({
             title: 'What OpenRestream does',
             items: [
                 { icon: 'ov:live', title: 'One stream, every platform', text: 'Twitch, YouTube, Kick and any RTMP, RTMPS or SRT server at once. Each destination has its own health, logs and retries.' },
