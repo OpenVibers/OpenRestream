@@ -221,7 +221,7 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
 <p class="ore-eyebrow">Open restreaming · free · no follower minimum</p>
 <h1 id="ore-hero-h">Go live once.<br><span class="ore-accent">Stream everywhere.</span></h1>
 <ul class="ore-logos" aria-label="Streams to">${PLATFORMS.map((pl) => `<li style="--c:${pl.color}" title="${esc(pl.name)}">${markSvg(pl)}<span class="ore-sr">${esc(pl.name)}</span></li>`).join('')}</ul>
-<p class="ore-lede">Send one stream from OBS or your browser. OpenRestream sends it to Twitch, YouTube, Kick and any RTMP or SRT server at the same time, and your OpenVibe Live channel comes with chat, clips and VODs.</p>
+<p class="ore-lede">Send one stream from OBS or your browser to Twitch, YouTube, Kick and any RTMP or SRT server at once. Your OpenVibe Live channel comes with it.</p>
 <div class="ore-actions"><a class="ore-btn ore-btn-primary" href="/streams">Start restreaming</a><a class="ore-btn" href="${esc(live)}">Go live from your browser</a></div>
 <p class="ore-note">Alpha: RTMP in; RTMP, RTMPS and SRT out. Going live from a browser happens on OpenVibe.Live for now (<a href="${esc(live)}/docs/go-live-in-your-browser">how it works</a>).</p>
 </div>
