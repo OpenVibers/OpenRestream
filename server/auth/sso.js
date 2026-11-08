@@ -13,7 +13,7 @@
  */
 const crypto = require('crypto');
 const express = require('express');
-const { createSsoClient, failurePage } = require('openvibe-sdk/sso');
+const { createSsoClient, failurePage, withParam } = require('openvibe-sdk/sso');
 
 const ACCESS = 'ov_token';
 const REFRESH = 'ov_refresh';
@@ -72,7 +72,9 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
     }
 
     router.get('/login', (req, res) => {
-        const started = sdkSso.authorizeUrl();
+        const silent = !!req.query.silent && req.query.silent !== '0';
+        const started = sdkSso.authorizeUrl({ silent });
+        if (silent) res.cookie('ov_oauth_silent', '1', flow); else res.clearCookie('ov_oauth_silent', { path: '/auth' });
         res.cookie(STATE, started.state, flow);
         res.cookie(VERIFIER, started.verifier, flow);
         res.cookie(NEXT, sanitizeNext(req.query.next, config), flow);
@@ -87,6 +89,9 @@ function createSsoRoutes({ config, auth, fetchImpl = globalThis.fetch }) {
         res.clearCookie(STATE, { path: '/auth' });
         res.clearCookie(VERIFIER, { path: '/auth' });
         res.clearCookie(NEXT, { path: '/auth' });
+        const silent = req.cookies && req.cookies.ov_oauth_silent === '1';
+        res.clearCookie('ov_oauth_silent', { path: '/auth' });
+        if (error && silent && sameString(state, expected)) return res.redirect(withParam(next, 'sso', 'none'));
         if (error) return res.redirect(`/?auth_error=${encodeURIComponent(String(error))}`);
         const retryHref = `/auth/login${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`;
         const failed = (status, title, text) => res.status(status).type('html').send(failurePage({

@@ -147,6 +147,7 @@ function renderPage({ title, body, user, canonicalPath = '/', robots = 'noindex,
             { label: 'Sessions', href: '/sessions', icon: 'fa-clock-rotate-left' },
         ],
         sessionUrl: '/auth/me',
+        silentLogin: '/auth/login?silent=1&next={url}',
         loginUrl: `/auth/login?next=${encodeURIComponent(canonicalPath)}`,
         logoutUrl: '/auth/logout?next={path}',   // Sign out in the shared navbar ends this site's session too
         notificationsRealtime: true,   // the bell hears new notifications over OpenVibe.Events (Shared 1.22.0)
