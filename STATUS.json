@@ -8,9 +8,9 @@
   "port": 4500,
   "rtmpPort": 1936,
   "domain": "openre.stream",
-  "contracts": "openvibe-contracts v0.338.0",
-  "sdk": "openvibe-sdk v0.94.0",
-  "shared": "openvibe-shared v4.159.0",
+  "contracts": "openvibe-contracts v0.373.0",
+  "sdk": "openvibe-sdk v0.123.0",
+  "shared": "openvibe-shared v4.173.0",
   "protocols": {
     "rtmp": "ingest ported (openre-rtmp-ingest)",
     "restream": "RTMP source to RTMP/RTMPS/SRT destinations ported (openre-restream-worker)",
