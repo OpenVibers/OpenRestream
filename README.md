@@ -313,7 +313,7 @@ control characters in sign-in's `next`, rate-limit the signed-in pages' posts an
 Part of the [OpenVibe network](https://openvibe.network). Built in the open by [OpenVibers](https://github.com/OpenVibers).
 
 <!-- versions:start -->
-- openvibe-contracts: v0.338.0
+- openvibe-contracts: v0.373.0
 - openvibe-sdk: v0.123.0
 - openvibe-shared: v4.173.0
 <!-- versions:end -->
