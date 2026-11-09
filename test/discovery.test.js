@@ -88,6 +88,21 @@ t('llms-full.txt (SEO-33): the site in full, from the same descriptor as llms.tx
     }
 });
 
+t('the twins llms.txt links answer Markdown, headed like their pages', async () => {
+    const api = await bootApi({ env: { BASE_URL: 'https://openre.stream' } });
+    try {
+        for (const [path, heading] of [['/index.md', /# Go live once\.\s+Stream everywhere\./], ['/updates.md', /# What shipped on OpenRestream/]]) {
+            const r = await request(api.base, 'GET', path, { headers: { Accept: 'text/html' } });
+            assert.strictEqual(r.status, 200, `${path} answers 200`);
+            assert.match(r.headers.get('content-type'), /^text\/markdown/, `${path} is Markdown`);
+            assert.ok(r.text.startsWith('---\ntitle:'), `${path} carries the page title`);
+            assert.match(r.text, heading, `${path} names the page heading`);
+        }
+    } finally {
+        await api.close();
+    }
+});
+
 t('the front page leads with open restreaming, links to Live for browser go-live, and says what runs here', async () => {
     const api = await bootApi({ env: { BASE_URL: 'https://openre.stream' } });
     try {
