@@ -33,6 +33,9 @@ function captureResponse() {
         getHeader(name) { return this.headers[String(name)]; },
         get(name) { return this.headers[String(name)]; },
         removeHeader(name) { delete this.headers[String(name)]; },
+        // The page's cache policy varies on Cookie (server/ui/routes.js page()); a twin is rendered from the same
+        // page code, so the capture has to answer it.
+        vary() { return this; },
         type(value) { this.headers['Content-Type'] = value === 'html' ? 'text/html; charset=utf-8' : String(value); return this; },
         location(url) { this.headers.Location = url; return this; },
         send(body) { this.body = body; this.headersSent = true; return this; },
