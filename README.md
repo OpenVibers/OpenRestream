@@ -4,6 +4,9 @@
 > any RTMP, RTMPS or SRT server at the same time, with OpenVibe Live on by default. Underneath: stream definitions,
 > keys, sessions, transport workers, outputs and output health.
 
+**Live site:** https://openre.stream · **API docs:** https://openvibe.services · **For AI:** https://openre.stream/llms.txt
+**Run it:** `npm ci && npm run dev` (Node 22.12 or newer) · **Tests:** `npm test`
+
 **Status:** alpha (roadmap Wave 7). Tested end to end with real RTMP. Deployed internally on `openvibe-ovh` since 2026-09-23 (API and coordinator on 127.0.0.1:4500; RTMP ingest public on port 1936 at `ingest.openre.stream` since the cutover runbook's phase A on 2026-09-23; Live wired with `OPENRE_URL` and an `openre.session.*` subscription; one rehearsal broadcast passed). **openre.stream serves its own site since 2026-10-09** (plan T11, cutover step B0 (a)): sign in with OpenVibe, create a stream with its RTMP key, and send it to other channels. No Live slot is ingested here yet: every slot is still ingested by Live until its per-slot cutover (`docs/cutover.md` phase B).
 **Domain:** `openre.stream` (UI + API), `ingest.openre.stream` (RTMP, DNS only)
 **Plan:** OpenVibe End-to-End Realignment & Implementation Plan, revision 3 (20 Sep 2026), §10, §10.5, §15.10; ADR-009 (binding), ADR-004, ADR-006, ADR-007.

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use OpenRestream in research or a product, cite it as below."
+title: openre-stream
+type: software
+authors:
+  - name: OpenVibe
+    alias: OpenVibers
+    website: https://openvibe.network
+repository-code: https://github.com/OpenVibers/OpenRestream
+url: https://openre.stream
+license: AGPL-3.0-only
+abstract: "Restream once to every platform from OBS or a browser, with OpenVibe.Live on by default, at openre.stream."
+keywords:
+  - openvibe
+  - nodejs
+  - self-hosted
+  - video
+  - streaming
