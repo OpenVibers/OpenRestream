@@ -20,6 +20,8 @@ const ovServe = require('openvibe-shared/serve');
 const seo = require('openvibe-shared/seo');
 const frame = require('openvibe-shared/frame');
 const showcase = require('openvibe-shared/showcase');
+const kit = require('openvibe-shared/kit');
+const cards = require('./cards');
 const express = require('express');
 const { renderPage, esc } = require('./layout');
 const { TWIN_PATH_RE } = require('../agent-pages');
@@ -84,7 +86,7 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
         if (req.caller.kind === 'user' && req.caller.subject) return true;
         page(req, res, {
             title: 'Sign in', canonicalPath: req.path,
-            body: `<h1>Sign in</h1><p>OpenRestream uses your OpenVibe account.</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
+            body: `${kit.pageHead({ title: 'Sign in', icon: 'user', back: { href: '/', label: 'Home' } })}<p>OpenRestream uses your OpenVibe account.</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
         }, 401);
         return false;
     }
@@ -93,14 +95,14 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
         const given = String((req.body && req.body._csrf) || '');
         const expected = csrfFor(req.caller.token || '');
         if (given.length === expected.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected))) return true;
-        page(req, res, { title: 'Expired form', body: '<h1>That form expired</h1><p>Go back, reload the page and try again.</p>' }, 403);
+        page(req, res, { title: 'Expired form', body: kit.pageHead({ title: 'That form expired', icon: 'help', lede: 'Go back, reload the page and try again.', back: { href: '/', label: 'Home' } }) }, 403);
         return false;
     }
 
     async function ownDefinition(req, res, id) {
         const d = await store.definitions.get(id);
         if (!d || d.state === 'archived' || !auth.canAccess(req.caller, d.owner_subject)) {
-            page(req, res, { title: 'Not found', body: '<h1>Stream not found</h1><p><a href="/streams">Your streams</a></p>' }, 404);
+            page(req, res, { title: 'Not found', body: kit.pageHead({ title: 'Stream not found', icon: 'help', back: { href: '/streams', label: 'Streams' } }) }, 404);
             return null;
         }
         return d;
@@ -109,7 +111,7 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
     async function ownDestination(req, res, id) {
         const dest = await store.outputs.destinationRow(id);
         const d = dest ? await ownDefinition(req, res, dest.definition_id) : null;
-        if (!dest && !res.headersSent) page(req, res, { title: 'Not found', body: '<h1>Destination not found</h1>' }, 404);
+        if (!dest && !res.headersSent) page(req, res, { title: 'Not found', body: kit.pageHead({ title: 'Destination not found', icon: 'help', back: { href: '/', label: 'Home' } }) }, 404);
         return d ? { dest, definition: d } : null;
     }
 
@@ -157,7 +159,7 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
                 name: 'OpenRestream', url: `${config.baseUrl}/`, description: FRONT_PAGE_DESCRIPTION, category: 'MultimediaApplication',
             }), seo.jsonLd.faq(FRONT_FAQ)],
             body: `${frontPage(config, f)}
-${signedIn ? `<h2>Your streams</h2>${mine.length ? await streamTable(mine) : '<p class="muted">No streams yet.</p>'}<p><a href="/streams">Manage streams</a></p>` : '<p><a href="/auth/login?next=/streams">Sign in with OpenVibe</a> to manage your streams.</p>'}
+${signedIn ? kit.section({ title: 'Your streams', icon: 'live', actions: [kit.button({ href: '/streams', label: 'Manage streams', icon: 'gear', kind: 'quiet' })], body: mine.length ? await streamTable(mine) : cards.emptyStreams() }) : '<p><a href="/auth/login?next=/streams">Sign in with OpenVibe</a> to manage your streams.</p>'}
 ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' })}`,
         });
     });
@@ -190,7 +192,7 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
             ['Recording', 'Per stream: a VOD, clips only, or nothing, saved to your OpenVibe.Video'],
             ['Minimum', 'None: no follower, subscriber or eligibility threshold'],
         ];
-        return `<section class="sc-sec ore-tier" aria-labelledby="ore-tier-h"><h2 id="ore-tier-h">The free tier, in numbers</h2>
+        return `<section class="sc-sec ore-tier" aria-labelledby="ore-tier-h"><h2 id="ore-tier-h" class="ovk-titled">${kit.icon('list', { cls: 'ovk-heading-icon' })}The free tier, in numbers</h2>
 <dl class="ore-tier-grid">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></section>`;
     }
 
@@ -216,19 +218,19 @@ ${frame.shipped({ service: 'openre', title: 'Recently shipped on OpenRestream' }
 <ul class="ore-dests">${dests}<li class="ore-dest ore-dest-own" style="--c:var(--accent,#3b82f6);--i:${PLATFORMS.length}"><label><input type="checkbox" class="ore-dest-in" checked><span class="ore-wire" aria-hidden="true"></span><span class="ore-dest-mark ore-dest-ov" aria-hidden="true">OV</span><span class="ore-dest-name">OpenVibe</span><span class="ore-switch" aria-hidden="true"></span></label></li></ul>
 <p class="ore-total" aria-live="polite">Live on <span class="ore-n"></span> places at once</p>
 </div>`;
-        const hero = `<section class="ore-hero" aria-labelledby="ore-hero-h">
+        const hero = `<section class="ore-hero" aria-label="OpenRestream">
 <div class="ore-hero-copy">
 <p class="ore-eyebrow">Open restreaming · free · no follower minimum</p>
-<h1 id="ore-hero-h">Go live once.<br><span class="ore-accent">Stream everywhere.</span></h1>
-<ul class="ore-logos" aria-label="Streams to">${PLATFORMS.map((pl) => `<li style="--c:${pl.color}" title="${esc(pl.name)}">${markSvg(pl)}<span class="ore-sr">${esc(pl.name)}</span></li>`).join('')}</ul>
-<p class="ore-lede">Send one stream from OBS or your browser to Twitch, YouTube, Kick and any RTMP or SRT server at once. Your OpenVibe Live channel comes with it.</p>
+${kit.pageHead({ title: 'Go live once. Stream everywhere.', icon: 'live', lede: 'Send one stream from OBS or your browser to Twitch, YouTube, Kick and any RTMP or SRT server at once. Your OpenVibe Live channel comes with it.' })}
+<ul data-ovk-scroll="drift" class="ore-logos" aria-label="Streams to">${PLATFORMS.map((pl) => `<li style="--c:${pl.color}" title="${esc(pl.name)}">${markSvg(pl)}<span class="ore-sr">${esc(pl.name)}</span></li>`).join('')}</ul>
+
 <div class="ore-actions"><a class="ore-btn ore-btn-primary" href="/streams">Start restreaming</a><a class="ore-btn" href="${esc(live)}">Go live from your browser</a></div>
 <p class="ore-note">Alpha: RTMP in; RTMP, RTMPS and SRT out. Going live from a browser happens on OpenVibe.Live for now (<a href="${esc(live)}/docs/go-live-in-your-browser">how it works</a>).</p>
 </div>
 ${flow}
 </section>
-${stats.length ? `<dl class="ore-stats ore-stats-strip">${stats.map(([v, d]) => `<div><dt>${n(v)}</dt><dd>${esc(d)}</dd></div>`).join('')}</dl>` : ''}`;
-        return hero + showcase.features({
+${stats.length ? `<dl data-ovk-scroll class="ore-stats ore-stats-strip">${stats.map(([v, d]) => `<div><dt>${n(v)}</dt><dd>${esc(d)}</dd></div>`).join('')}</dl>` : ''}`;
+        const content = hero + showcase.features({
             title: 'What OpenRestream does',
             items: [
                 { icon: 'ov:live', title: 'One stream, every platform', text: 'Twitch, YouTube, Kick and any RTMP, RTMPS or SRT server at once. Each destination has its own health, logs and retries.' },
@@ -244,7 +246,7 @@ ${stats.length ? `<dl class="ore-stats ore-stats-strip">${stats.map(([v, d]) => 
             lede: 'Add each destination once, test it, and it goes live with you every time.',
             items: DESTINATIONS.map((d) => ({ title: d.name, text: d.text })),
         }) + showcase.steps({
-            title: 'Restream with OBS',
+            id: 'how-it-works', title: 'Restream with OBS',
             items: [
                 { title: 'Sign in', text: 'With your OpenVibe account.', href: '/auth/login?next=/streams' },
                 { title: 'Create a stream', text: 'Copy the RTMP server and key; the key is shown only once. OpenVibe Live is already ticked.' },
@@ -255,17 +257,17 @@ ${stats.length ? `<dl class="ore-stats ore-stats-strip">${stats.map(([v, d]) => 
             title: 'OBS settings',
             lede: 'In OBS, open Settings → Stream, choose Custom, and paste the server and the key from your stream\'s page.',
             samples: [{ label: 'Settings → Stream', code: `Service:     Custom...\nServer:      ${ingestServer(cfg)}\nStream Key:  (from your stream's page, shown once)` }],
-        }) + `<section class="sc-sec ore-faq" aria-labelledby="ore-faq-h"><h2 id="ore-faq-h">Questions</h2>
+        }) + `<section class="sc-sec ore-faq" aria-labelledby="ore-faq-h"><h2 id="ore-faq-h" class="ovk-titled">${kit.icon('help', { cls: 'ovk-heading-icon' })}Questions</h2>
 ${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('\n')}
 </section>`;
+        return content.replace(/<h2([^>]*)>(What OpenRestream does|Where it can stream|Restream with OBS|OBS settings)<\/h2>/g, (_, attrs, title) => `<h2${attrs} class="ovk-titled">${kit.icon('live', { cls: 'ovk-heading-icon' })}${title}</h2>`);
     }
 
     async function streamTable(list) {
-        return `<table><tr><th>Stream</th><th>State</th><th>Now</th><th>Linked to</th></tr>${(await Promise.all(list.map(async (d) => {
+        return kit.list(await Promise.all(list.map(async d => {
             const open = (await store.sessions.openFor(d.id))[0];
-            const refs = d.external_refs.map(r => `${r.service}:${r.type}:${r.id}`).join(', ');
-            return `<tr><td><a href="/streams/${esc(d.id)}">${esc(d.title)}</a></td><td>${pill(d.state)}</td><td>${open ? pill(open.state) : '<span class="muted">offline</span>'}</td><td class="mono">${esc(refs) || '—'}</td></tr>`;
-        }))).join('')}</table>`;
+            return kit.row({ href: '/streams/' + d.id, mark: kit.icon('live'), title: d.title, sub: open ? 'Live now' : 'Ready for your next broadcast', meta: d.state, badge: open ? kit.badge(open.state, 'live') : '' });
+        })));
     }
 
     router.get('/streams', async (req, res) => {
@@ -273,8 +275,8 @@ ${FRONT_FAQ.map((f) => `<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p
         const list = await store.definitions.list({ owner_subject: req.caller.subject });
         page(req, res, {
             title: 'Streams', canonicalPath: '/streams',
-            body: `<h1>Streams</h1>${list.length ? await streamTable(list) : '<p class="muted">No streams yet.</p>'}
-<div class="card"><h2>New stream</h2>${form(req, '/streams', `
+            body: `${kit.pageHead({ title: 'Streams', icon: 'live', back: { href: '/', label: 'Home' }, lede: 'Set up once. Send your next stream everywhere.', actions: [{ href: '#new-stream', icon: 'plus', label: 'New stream' }] })}${list.length ? await streamTable(list) : cards.emptyStreams()}
+<div class="card" id="new-stream"><h2 class="ovk-titled">${kit.icon('plus', { cls: 'ovk-heading-icon' })}New stream</h2>${form(req, '/streams', `
 <label>Title</label><input type="text" name="title" maxlength="140" required>
 ${whereItGoes(null)}
 <div class="ore-live-only"><div class="row"><div><label>Recording</label><select name="recording_mode"><option value="vod">Record a VOD</option><option value="clips">Clips only</option><option value="none">Do not record</option></select></div>
@@ -315,7 +317,7 @@ ${option('videos', 'Record only, to my videos', `Nothing goes live. Each session
         res.set('Cache-Control', 'no-store');
         page(req, res, {
             title: heading, canonicalPath: `/streams/${definition.id}`,
-            body: `<h1>${esc(heading)}</h1>
+            body: `${kit.pageHead({ title: heading, icon: 'key', back: { href: '/streams', label: 'Streams' } })}
 <div class="card"><p><strong>Copy the key now.</strong> OpenRestream stores only a hash of it; this page is the only time it is shown.</p>
 <label>Server (OBS: Settings → Stream → Custom)</label><code class="secret">${esc(ep.rtmp ? ep.rtmp.url : '')}</code>
 <label>Stream key</label><code class="secret">${esc(key.key)}</code></div>
@@ -336,6 +338,24 @@ ${liveNote(live)}${recordNote(definition)}
         await keyPage(req, res, definition, key, 'Stream created', live);
     });
 
+    router.get('/destinations', async (req, res) => {
+        if (!needUser(req, res)) return;
+        const definitions = await store.definitions.list({ owner_subject: req.caller.subject });
+        const rows = (await Promise.all(definitions.map(async d => (await store.outputs.destinations(d.id)).map(x =>
+            kit.row({ href: '/destinations/' + x.id, mark: cards.platform(x.platform), title: x.name || x.platform, sub: d.title, meta: x.enabled ? 'Enabled' : 'Disabled' })
+        )))).flat();
+        page(req, res, { title: 'Destinations', canonicalPath: '/destinations', body: kit.pageHead({ title: 'Destinations', icon: 'link', back: { href: '/', label: 'Home' }, lede: 'Every place your streams go.', actions: [{ href: '/streams', icon: 'plus', label: 'Add a destination' }] }) + (rows.length ? kit.list(rows) : kit.empty({ icon: 'link', title: 'Choose your destinations', text: 'Open a stream to connect Twitch, YouTube, Kick or your own server.', action: { href: '/streams', icon: 'plus', label: 'Choose a stream' } })) });
+    });
+    router.get('/go-live', async (req, res) => {
+        if (!needUser(req, res)) return;
+        const definitions = await store.definitions.list({ owner_subject: req.caller.subject });
+        page(req, res, { title: 'Go live', canonicalPath: '/go-live', body: kit.pageHead({ title: 'Go live', icon: 'live', back: { href: '/', label: 'Home' }, lede: 'Choose your encoder, check your destinations and start broadcasting.' }) + kit.section({ title: 'From your browser', icon: 'video', body: kit.empty({ icon: 'video', text: 'Use your camera or share your screen on OpenVibe Live.', action: { href: config.liveUrl + '/broadcast', icon: 'live', label: 'Open the studio' } }) }) + kit.section({ title: 'From OBS or an encoder', icon: 'live', body: definitions.length ? await streamTable(definitions) : cards.emptyStreams() }) });
+    });
+    router.get('/settings', async (req, res) => {
+        if (!needUser(req, res)) return;
+        page(req, res, { title: 'You', canonicalPath: '/settings', body: kit.pageHead({ title: 'You', icon: 'user', back: { href: '/', label: 'Home' }, lede: 'Your account and stream preferences.' }) + kit.section({ title: 'Stream settings', icon: 'gear', body: kit.empty({ icon: 'gear', text: 'Recording, playback and destination settings belong to each stream.', action: { href: '/streams', label: 'Manage streams', icon: 'gear' } }) }) + kit.section({ title: 'Your account', icon: 'user', body: kit.button({ href: 'https://openvibe.network/settings', label: 'Account settings', icon: 'gear', kind: 'quiet' }) + kit.button({ href: '/auth/logout', label: 'Sign out', icon: 'back', kind: 'quiet' }) }) });
+    });
+
     router.get('/streams/:id', async (req, res) => {
         if (!needUser(req, res)) return;
         const d = await ownDefinition(req, res, req.params.id);
@@ -349,28 +369,28 @@ ${liveNote(live)}${recordNote(definition)}
         const outFor = async (destId) => await outputs.find(o => o.destination_id === destId);
         page(req, res, {
             title: d.title, canonicalPath: `/streams/${d.id}`,
-            body: `<h1>${esc(d.title)} ${pill(d.state)}</h1>
+            body: `${kit.pageHead({ title: d.title, icon: 'live', back: { href: '/streams', label: 'Streams' }, actions: [{ href: '#stream-settings', label: 'Settings', icon: 'gear' }] })}${pill(d.state)}
 <p class="muted mono">${esc(d.id)}${d.external_refs.length ? ` · linked to ${esc(d.external_refs.map(r => `${r.service}:${r.type}:${r.id}`).join(', '))}` : ''}</p>
 ${d.record_to ? recordNote(d) : liveStatus(d, req.query.live)}
-<div class="card"><h2>Ingest</h2>
+<div class="card"><h2 class="ovk-titled">${kit.icon('live', { cls: 'ovk-heading-icon' })}Ingest</h2>
 ${ep.rtmp ? `<label>RTMP server</label><code class="secret">${esc(ep.rtmp.url)}</code>` : '<p class="muted">RTMP is not enabled for this stream.</p>'}
-<table><tr><th>Key</th><th>Status</th><th>Created</th><th>Last used</th></tr>${keys.map(k => `<tr><td class="mono">ork_…${esc(k.hint)}</td><td>${pill(k.status)}${k.grace_until ? ` until ${esc(iso(k.grace_until))}` : ''}</td><td>${esc(iso(k.created_at))}</td><td>${esc(iso(k.last_used_at))}</td></tr>`).join('') || '<tr><td colspan="4">No usable key: rotate to get one.</td></tr>'}</table>
+<table data-ovk-scroll><tr><th>Key</th><th>Status</th><th>Created</th><th>Last used</th></tr>${keys.map(k => `<tr><td class="mono">ork_…${esc(k.hint)}</td><td>${pill(k.status)}${k.grace_until ? ` until ${esc(iso(k.grace_until))}` : ''}</td><td>${esc(iso(k.created_at))}</td><td>${esc(iso(k.last_used_at))}</td></tr>`).join('') || '<tr><td colspan="4">No usable key: rotate to get one.</td></tr>'}</table>
 ${form(req, `/streams/${d.id}/rotate`, `<div class="row"><div><label>Old key stays valid for (seconds, 0 = revoke now)</label><input type="number" name="grace_seconds" min="0" max="604800" value="0"></div>
 <div><label><input type="checkbox" name="end_sessions" value="1"> also disconnect a running session</label></div></div><button type="submit" class="danger">Rotate key</button>`, { confirm: 'Issue a new key and retire the current one?' })}
 </div>
-<div class="card"><h2>Now</h2>${open ? `<p>${pill(open.state)} since ${esc(iso(open.live_at || open.created_at))} on ${esc(open.worker_kind)} generation ${esc(open.worker_generation)} · <a href="/sessions/${esc(open.id)}">session</a></p>
+<div class="card"><h2 class="ovk-titled">${kit.icon('live', { cls: 'ovk-heading-icon' })}Now</h2>${open ? `<p>${pill(open.state)} since ${esc(iso(open.live_at || open.created_at))} on ${esc(open.worker_kind)} generation ${esc(open.worker_generation)} · <a href="/sessions/${esc(open.id)}">session</a></p>
 ${form(req, `/sessions/${open.id}/end`, '<button type="submit" class="danger">End session</button>', { cls: 'inline', confirm: 'Disconnect the encoder?' })}` : '<p class="muted">Offline.</p>'}</div>
-<div class="card"><h2>Restream destinations</h2>${d.record_to ? '<p class="muted">Off while this stream records only to your videos.</p>' : ''}
-${dests.length ? `<table><tr><th>Destination</th><th>Output</th><th>Health</th><th>Actions</th></tr>${(await Promise.all(dests.map(async (x) => {
+<div class="card"><h2 class="ovk-titled">${kit.icon('link', { cls: 'ovk-heading-icon' })}Restream destinations</h2>${d.record_to ? '<p class="muted">Off while this stream records only to your videos.</p>' : ''}
+${dests.length ? `<table data-ovk-scroll><tr><th>Destination</th><th>Output</th><th>Health</th><th>Actions</th></tr>${(await Promise.all(dests.map(async (x) => {
                 const o = await outFor(x.id);
                 return `<tr><td><strong>${esc(x.name || x.platform)}</strong> <span class="muted">${esc(x.platform)}</span><br><span class="mono">${esc(x.server_url)}</span><br><span class="muted">key ${esc(x.stream_key_hint || 'not set')}${x.enabled ? '' : ' · disabled'}${x.auto_start ? ' · auto-start' : ''}${x.hold_reason ? ` · held: ${esc(x.hold_reason)}` : ''}${x.cooldown_ms ? ` · cooling down until ${esc(x.cooldown_until)}` : ''}</span></td>
 <td>${o ? pill(o.state) : '<span class="muted">—</span>'}</td>
 <td>${o && o.progress ? `${esc(o.progress.fps ?? '?')} fps · ${esc(o.progress.bitrate_kbps ?? '?')} kbit/s · speed ${esc(o.progress.speed ?? '?')}` : ''}${o && o.last_error ? `<br><span class="muted">${esc(o.last_error)}</span>` : ''}${!o && x.last_error ? `<span class="muted">${esc(x.last_error)}</span>` : ''}</td>
 <td>${form(req, `/destinations/${x.id}/test`, '<button type="submit" class="secondary">Test</button>', { cls: 'inline' })}${open && !d.record_to ? (o && ['pending', 'starting', 'live', 'error'].includes(o.state) ? form(req, `/destinations/${x.id}/stop`, '<button type="submit" class="secondary">Stop</button>', { cls: 'inline' }) : form(req, `/destinations/${x.id}/start`, '<button type="submit">Start</button>', { cls: 'inline' })) : ''}
 <a href="/destinations/${esc(x.id)}">Edit</a>${form(req, `/destinations/${x.id}/delete`, '<button type="submit" class="danger">Delete</button>', { cls: 'inline', confirm: 'Delete this destination?' })}</td></tr>`;
-            }))).join('')}</table>` : '<p class="muted">No destinations.</p>'}
+            }))).join('')}</table>` : kit.empty({ icon: 'link', text: 'Add the places this stream should go below.' })}
 <h3>Add a destination</h3>${form(req, `/streams/${d.id}/destinations`, destinationFields({}))}</div>
-<div class="card"><h2>Settings</h2>${form(req, `/streams/${d.id}`, `
+<div class="card"><h2 class="ovk-titled" id="stream-settings">${kit.icon('gear', { cls: 'ovk-heading-icon' })}Settings</h2>${form(req, `/streams/${d.id}`, `
 <label>Title</label><input type="text" name="title" maxlength="140" value="${esc(d.title)}">
 ${whereItGoes(d.record_to)}
 <div class="row"><div class="ore-live-only"><label>Recording</label><select name="recording_mode">${['vod', 'clips', 'none'].map(m => `<option value="${m}"${d.recording_mode === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div>
@@ -379,7 +399,7 @@ ${whereItGoes(d.record_to)}
 <div><label>State</label><select name="state">${['active', 'disabled'].map(m => `<option${d.state === m ? ' selected' : ''}>${m}</option>`).join('')}</select></div></div>
 <label class="ore-live-only"><input type="checkbox" name="mirror_to_live" value="1"${d.mirror_to_live ? ' checked' : ''}> Show it live on my OpenVibe Live channel too</label>
 <button type="submit">Save</button>`)}</div>
-<h2>Sessions</h2>${sessionTable(sessions)}`,
+<h2 class="ovk-titled">${kit.icon('clock', { cls: 'ovk-heading-icon' })}Sessions</h2>${await sessionTable(sessions)}`,
         });
     });
 
@@ -417,9 +437,14 @@ ${whereItGoes(d.record_to)}
         return out;
     }
 
-    function sessionTable(list) {
-        if (!list.length) return '<p class="muted">No sessions yet.</p>';
-        return `<table><tr><th>Session</th><th>State</th><th>Started</th><th>Ended</th><th>Worker</th></tr>${list.map(s => `<tr><td><a class="mono" href="/sessions/${esc(s.id)}">${esc(s.id)}</a></td><td>${pill(s.state)}${s.failure_reason ? ` <span class="muted">${esc(s.failure_reason)}</span>` : ''}</td><td>${esc(iso(s.live_at || s.created_at))}</td><td>${esc(iso(s.ended_at))}</td><td>${esc(s.worker_kind)} #${esc(s.worker_generation)}</td></tr>`).join('')}</table>`;
+    async function sessionTable(list) {
+        if (!list.length) return cards.emptySessions();
+        return `<div class="ore-session-grid">${(await Promise.all(list.map(async s => {
+            const definition = await store.definitions.get(s.definition_id);
+            const outputs = await store.outputs.outputsOfSession(s.id);
+            const destinations = await Promise.all(outputs.map(o => store.outputs.getDestination(o.destination_id)));
+            return cards.session(s, definition, outputs, destinations);
+        }))).join('')}</div>`;
     }
 
     post('/streams/:id', async (req, res) => {
@@ -461,9 +486,9 @@ ${whereItGoes(d.record_to)}
         const logs = await store.outputs.logsOfDestination(x.id, 50);
         page(req, res, {
             title: `Destination ${x.name || x.platform}`, canonicalPath: `/destinations/${x.id}`,
-            body: `<h1>${esc(x.name || x.platform)}</h1><p><a href="/streams/${esc(own.definition.id)}">← ${esc(own.definition.title)}</a></p>
+            body: `${kit.pageHead({ title: x.name || x.platform, icon: 'link', back: { href: '/streams/' + own.definition.id, label: own.definition.title }, lede: 'Connection settings and delivery history.' })}
 <div class="card">${form(req, `/destinations/${x.id}`, destinationFields(x))}</div>
-<h2>Log</h2>${logs.length ? `<table><tr><th>When</th><th>Level</th><th>Message</th></tr>${logs.map(l => `<tr><td>${esc(iso(l.at))}</td><td>${pill(l.level === 'error' ? 'failed' : l.level === 'warn' ? 'error' : 'ok')}</td><td class="mono">${esc(l.message)}</td></tr>`).join('')}</table>` : '<p class="muted">Nothing logged yet.</p>'}`,
+<h2 class="ovk-titled">${kit.icon('list', { cls: 'ovk-heading-icon' })}Log</h2>${logs.length ? `<table data-ovk-scroll><tr><th>When</th><th>Level</th><th>Message</th></tr>${logs.map(l => `<tr><td>${esc(iso(l.at))}</td><td>${pill(l.level === 'error' ? 'failed' : l.level === 'warn' ? 'error' : 'ok')}</td><td class="mono">${esc(l.message)}</td></tr>`).join('')}</table>` : '<p class="muted">Nothing logged yet.</p>'}`,
         });
     });
 
@@ -488,7 +513,7 @@ ${whereItGoes(d.record_to)}
         await store.outputs.log(null, own.dest.id, result.ok ? 'info' : 'warn', `test ${result.ok ? 'passed' : 'failed'}: ${result.checks.map(c => `${c.check} ${c.ok ? 'ok' : 'FAIL'} (${c.detail})`).join('; ')}`);
         page(req, res, {
             title: 'Destination test',
-            body: `<h1>Test ${result.ok ? pill('ok') : pill('failed')}</h1><table>${result.checks.map(c => `<tr><td>${esc(c.check)}</td><td>${c.ok ? pill('ok') : pill('failed')}</td><td>${esc(c.detail)}</td></tr>`).join('')}</table>
+            body: `${kit.pageHead({ title: 'Destination test', icon: 'check', back: { href: '/destinations', label: 'Destinations' } })}${result.ok ? pill('ok') : pill('failed')}<table data-ovk-scroll>${result.checks.map(c => `<tr><td>${esc(c.check)}</td><td>${c.ok ? pill('ok') : pill('failed')}</td><td>${esc(c.detail)}</td></tr>`).join('')}</table>
 <p class="muted">A passing test means the ingest is reachable. Whether the platform accepts the key shows once an output runs.</p><p><a href="/streams/${esc(own.definition.id)}">Back</a></p>`,
         });
     });
@@ -510,22 +535,22 @@ ${whereItGoes(d.record_to)}
     router.get('/sessions', async (req, res) => {
         if (!needUser(req, res)) return;
         const all = req.caller.staff && req.query.all === '1';
-        page(req, res, { title: 'Sessions', canonicalPath: '/sessions', body: `<h1>Sessions</h1>${req.caller.staff ? `<p class="muted"><a href="/sessions${all ? '' : '?all=1'}">${all ? 'Only mine' : 'Everyone (staff)'}</a></p>` : ''}${sessionTable(await store.sessions.list({ owner_subject: all ? undefined : req.caller.subject, limit: 100 }))}` });
+        page(req, res, { title: 'Sessions', canonicalPath: '/sessions', body: `${kit.pageHead({ title: 'Sessions', icon: 'clock', back: { href: '/', label: 'Home' }, lede: 'Your live history, from first frame to final viewer.', actions: [{ href: '/go-live', label: 'Go live', icon: 'live' }] })}${req.caller.staff ? cards.scope(all) : ''}${await sessionTable(await store.sessions.list({ owner_subject: all ? undefined : req.caller.subject, limit: 100 }))}` });
     });
 
     router.get('/sessions/:id', async (req, res) => {
         if (!needUser(req, res)) return;
         const s = await store.sessions.get(req.params.id);
         const d = s ? await store.definitions.row(s.definition_id) : null;
-        if (!s || !d || !auth.canAccess(req.caller, d.owner_subject)) return page(req, res, { title: 'Not found', body: '<h1>Session not found</h1>' }, 404);
+        if (!s || !d || !auth.canAccess(req.caller, d.owner_subject)) return page(req, res, { title: 'Not found', body: kit.pageHead({ title: 'Session not found', icon: 'help', back: { href: '/', label: 'Home' } }) }, 404);
         const outputs = await store.outputs.outputsOfSession(s.id);
         const rec = await store.recordings.bySession(s.id);
         const pb = await store.sessions.playback(s);
         const open = ['starting', 'live', 'ending'].includes(s.state);
         return page(req, res, {
             title: `Session ${s.id}`, canonicalPath: `/sessions/${s.id}`,
-            body: `<h1>Session ${pill(s.state)}</h1><p class="mono">${esc(s.id)}</p><p><a href="/streams/${esc(d.id)}">← ${esc(d.title)}</a></p>
-<div class="card"><table>
+            body: `${kit.pageHead({ title: d.title || 'Session', icon: 'clock', back: { href: '/sessions', label: 'Sessions' }, lede: 'Session details, output health and lifecycle.' })}${pill(s.state)}
+<div class="card"><table data-ovk-scroll>
 <tr><th>Protocol</th><td>${esc(s.protocol)}</td></tr>
 <tr><th>Worker</th><td>${esc(s.worker_kind)} generation ${esc(s.worker_generation)} <span class="mono muted">${esc(s.worker_id)}</span></td></tr>
 <tr><th>Live since</th><td>${esc(iso(s.live_at))}</td></tr><tr><th>Ended</th><td>${esc(iso(s.ended_at))} ${esc(s.end_reason || s.failure_reason || '')}</td></tr>
@@ -533,15 +558,15 @@ ${whereItGoes(d.record_to)}
 <tr><th>Recording</th><td>${rec ? `${pill(rec.state)} ${rec.media_vod_id ? `Media ${esc(rec.media_app)} VOD ${esc(rec.media_vod_id)}` : ''} ${esc(rec.last_error || '')}${rec.media_app === config.media.videosAppId ? `<br>Private, in <a href="${esc(config.videoUrl)}/me/videos">your videos on OpenVibe.Video</a> once it is ready.` : ''}` : '<span class="muted">none</span>'}</td></tr>
 <tr><th>Playback</th><td>${pb && pb.flv && s.state === 'live' ? `<a class="mono" href="${esc(pb.flv.public_url)}">${esc(pb.flv.public_url)}</a> (HTTP-FLV)` : '—'}</td></tr>
 </table>${open ? form(req, `/sessions/${s.id}/end`, '<button type="submit" class="danger">End session</button>', { confirm: 'Disconnect the encoder?' }) : ''}</div>
-<h2>Outputs</h2>${outputs.length ? `<table><tr><th>Output</th><th>State</th><th>Health</th><th>Restarts</th></tr>${(await outputs.map(o => `<tr><td class="mono">${esc(o.id)}<br><span class="muted">${esc(o.destination_id)}</span></td><td>${pill(o.state)}</td><td>${o.progress ? `${esc(o.progress.fps ?? '?')} fps · ${esc(o.progress.bitrate_kbps ?? '?')} kbit/s` : ''} ${esc(o.last_error || '')}</td><td>${esc(o.restart_attempts)}/${esc(o.max_restart_attempts)}</td></tr>`)).join('')}</table>` : '<p class="muted">No outputs.</p>'}
-<h2>Lifecycle</h2><table>${(await store.sessions.transitions(s.id)).map(t => `<tr><td>${esc(iso(t.at))}</td><td>${esc(t.from_state || '·')} → ${pill(t.to_state)}</td><td>${esc(t.reason || '')}</td><td class="mono muted">${esc(t.actor || '')}</td></tr>`).join('')}</table>`,
+<h2 class="ovk-titled">${kit.icon('link', { cls: 'ovk-heading-icon' })}Outputs</h2>${outputs.length ? `<table data-ovk-scroll><tr><th>Output</th><th>State</th><th>Health</th><th>Restarts</th></tr>${(await outputs.map(o => `<tr><td class="mono">${esc(o.id)}<br><span class="muted">${esc(o.destination_id)}</span></td><td>${pill(o.state)}</td><td>${o.progress ? `${esc(o.progress.fps ?? '?')} fps · ${esc(o.progress.bitrate_kbps ?? '?')} kbit/s` : ''} ${esc(o.last_error || '')}</td><td>${esc(o.restart_attempts)}/${esc(o.max_restart_attempts)}</td></tr>`)).join('')}</table>` : kit.empty({ icon: 'link', text: 'Delivery health appears here when this session sends to a destination.' })}
+<h2 class="ovk-titled">${kit.icon('clock', { cls: 'ovk-heading-icon' })}Lifecycle</h2><table data-ovk-scroll>${(await store.sessions.transitions(s.id)).map(t => `<tr><td>${esc(iso(t.at))}</td><td>${esc(t.from_state || '·')} → ${pill(t.to_state)}</td><td>${esc(t.reason || '')}</td><td class="mono muted">${esc(t.actor || '')}</td></tr>`).join('')}</table>`,
         });
     });
 
     post('/sessions/:id/end', async (req, res) => {
         const s = await store.sessions.get(req.params.id);
         const d = s ? await store.definitions.row(s.definition_id) : null;
-        if (!s || !d || !auth.canAccess(req.caller, d.owner_subject)) return page(req, res, { title: 'Not found', body: '<h1>Session not found</h1>' }, 404);
+        if (!s || !d || !auth.canAccess(req.caller, d.owner_subject)) return page(req, res, { title: 'Not found', body: kit.pageHead({ title: 'Session not found', icon: 'help', back: { href: '/', label: 'Home' } }) }, 404);
         await store.sessions.requestEnd(s.id, req.caller.subject);
         return res.redirect(303, `/sessions/${s.id}`);
     });
