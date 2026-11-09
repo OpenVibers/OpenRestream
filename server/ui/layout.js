@@ -112,11 +112,11 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore form:has(input[name=record_to][value=videos]:checked) .ore-live-only{display:none}
 .ore .ovk-page-head h1{margin:0}.ore .ovk-page-head a,.ore .ovk-btn,.ore .ovk-icon-btn{color:inherit;text-decoration:none}
 .ore .ovk-btn--primary{color:var(--on-accent-strong,#fff)}
-.ore-session-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px}
+.ore-session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:16px}
 .ore-session-card{padding:20px;background:var(--ore-panel);border:1px solid var(--ore-line);border-radius:20px;min-width:0}
 .ore-session-card h2{margin:14px 0 4px;font-size:1.2rem}.ore-session-card h2 a{color:var(--ore-text);text-decoration:none}
 .ore-session-top{display:flex;justify-content:space-between;align-items:center}
-.ore-session-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.ore-session-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:12px;margin:18px 0}
 .ore-session-metrics dt{font-size:.8rem;color:var(--ore-muted)}.ore-session-metrics dd{margin:4px 0 0;font-weight:650;overflow-wrap:anywhere}
 .ore-session-destinations{display:flex;gap:8px;overflow:auto;position:relative;padding-bottom:8px}
 .ore-platform{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;border-radius:999px;background:var(--bg-secondary);padding:6px 10px;font-size:.85rem}
@@ -124,7 +124,8 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore-session-actions{display:flex;justify-content:flex-end;margin-top:12px}
 .ore-scope{display:flex;width:fit-content;gap:4px;padding:4px;border-radius:999px;background:var(--bg-secondary);border:1px solid var(--ore-line);margin-bottom:20px}
 .ore-scope a{display:flex;align-items:center;justify-content:center;min-height:44px;min-width:90px;border-radius:999px;color:var(--ore-muted);text-decoration:none}
-.ore-scope a[aria-current]{background:var(--ore-panel);color:var(--ore-text);box-shadow:0 2px 8px #0002}
+.ore-scope a[aria-current]{background:color-mix(in srgb,var(--ore-accent) 22%,var(--ore-panel));color:var(--ore-text);font-weight:700;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ore-accent) 45%,transparent)}
+.ore-scope a:not([aria-current]):hover{color:var(--ore-text)}
 .ore-how{text-align:center}.ore-how a{display:inline-flex;align-items:center;min-height:44px}
 .ore :where(button,input,select){min-height:44px}.ore input[type=checkbox],.ore input[type=radio]{min-height:auto}
 .ore table{display:block;overflow-x:auto;position:relative}.ore .ovk-sheet{color:var(--ore-text)}

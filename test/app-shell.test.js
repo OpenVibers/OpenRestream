@@ -29,7 +29,9 @@ t('session scope and new tabs retain owner boundaries', async () => {
 t('session cards escape content and distinguish missing measurements', () => {
     const h = cards.session({ id: 's_test', state: 'ended', created_at: 1700000000000, ended_at: 1700003600000 }, { title: '<script>bad</script>' }, [{ state: 'error', last_error: 'lost' }], [{ platform: 'twitch' }]);
     assert.ok(h.includes('&lt;script&gt;') && !h.includes('<script>bad'));
-    assert.ok(h.includes('1h 0m') && h.includes('Needs attention') && h.includes('Unavailable'));
+    assert.ok(h.includes('1h 0m') && h.includes('Needs attention'));
+    // No made-up number: an ended card has no Viewers figure, and its sheet says the destinations report none.
+    assert.ok(!h.includes('<dt>Viewers</dt>') && h.includes('Viewer totals are not reported by these destinations.'));
     assert.ok(h.includes('data-ovk-sheet') && h.includes('<dialog') && h.includes('/sessions/s_test'));
     assert.ok(h.includes('Twitch') && h.includes('<svg'));
 });

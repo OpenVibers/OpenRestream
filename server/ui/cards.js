@@ -20,7 +20,10 @@ function session(s, definition, outputs = [], destinations = []) {
     const health = outputs.some(o => o.last_error || ['failed', 'error', 'lost'].includes(o.state)) ? 'Needs attention' : outputs.length ? (running ? 'Delivering' : 'Finished') : 'No output data';
     const title = definition && definition.title || 'Restream session';
     const sid = 'session-' + s.id;
-    const metrics = `<dl class="ore-session-metrics"><div><dt>Length</dt><dd>${esc(length)}</dd></div><div><dt>Health</dt><dd>${esc(health)}</dd></div><div><dt>Viewers</dt><dd>Unavailable</dd></div></dl>`;
+    // Viewers only while it runs and someone is watching here (OpenRestream's own players); the destinations report no
+    // totals, so an ended card never shows a number it does not have (the sheet says why).
+    const watching = running && Number(s.viewers) > 0 ? `<div><dt>Watching here</dt><dd>${esc(String(Number(s.viewers)))}</dd></div>` : '';
+    const metrics = `<dl class="ore-session-metrics"><div><dt>Length</dt><dd>${esc(length)}</dd></div><div><dt>Health</dt><dd>${esc(health)}</dd></div>${watching}</dl>`;
     const marks = `<div class="ore-session-destinations" data-ovk-scroll aria-label="Destinations">${destinations.filter(Boolean).map(d => platform(d.platform)).join('') || '<span class="muted">No destinations recorded</span>'}</div>`;
     const when = valid ? `<time datetime="${started.toISOString()}">${esc(started.toLocaleString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))} UTC</time>` : 'Start unavailable';
     const details = `<p>${when}</p>${metrics}${marks}<p class="muted">Viewer totals are not reported by these destinations.</p>` + kit.button({ href: '/sessions/' + s.id, icon: 'clock', label: 'Full session details', kind: 'quiet' });
