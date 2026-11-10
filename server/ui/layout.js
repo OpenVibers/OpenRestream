@@ -26,7 +26,7 @@ const CSS = `
    sections drew white text on white cards on light themes (2026-11-01). */
 :root{--ore-bg:var(--bg-primary,#0d131d);--ore-panel:var(--bg-secondary,#141c2b);--ore-line:var(--border,#233049);--ore-text:var(--text-primary,#e6ecf5);--ore-muted:var(--text-secondary,#93a2bd);--ore-accent:var(--accent,#3b82f6);--ore-ok:var(--success-text,#22c55e);--ore-warn:var(--warning-text,#f59e0b);--ore-bad:var(--danger-text,#ef4444);--ore-field:var(--bg-input,#0a0f18)}
 body{margin:0;background:var(--ore-bg);color:var(--ore-text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 64px}
+main.ore{max-width:1040px;margin:0 auto;padding:24px 16px 0}
 main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right:0}
 .ore h1{font-size:1.6rem;margin:.2em 0 .4em}.ore h2{font-size:1.15rem;margin:1.6em 0 .6em}.ore h3{font-size:1rem;margin:1em 0 .4em}
 .ore a{color:color-mix(in srgb,var(--accent,#3b82f6) 60%,var(--text-primary,#e6ecf5))}.ore p.muted,.ore .muted{color:var(--ore-muted)}
