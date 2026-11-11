@@ -55,7 +55,10 @@ t('the UI works without JavaScript: landing, sign-in prompt, streams', async () 
     assert.strictEqual(home.status, 200);
     assert.match(home.text, /OpenRestream/);
     assert.match(home.text, /theme-loader\.js/);
-    assert.match(home.text, /<noscript><nav/);
+    // The first HTML carries the site navigation inside the mount (the browser navbar replaces it on boot).
+    const serverNav = /<div id="navbar-mount"><nav[^>]*data-ov-server-nav="true"[\s\S]*?<\/nav><\/div>/.exec(home.text);
+    assert.ok(serverNav, 'the first HTML has the server navigation');
+    assert.match(serverNav[0], /href="\/streams"[^>]*>Streams</);
     const signin = await request(api.base, 'GET', '/streams');
     assert.strictEqual(signin.status, 401);
     assert.match(signin.text, /Sign in with OpenVibe/);

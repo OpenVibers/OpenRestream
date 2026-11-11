@@ -1,5 +1,6 @@
 'use strict';
 const ovServe = require('openvibe-shared/serve');
+const frame = require('openvibe-shared/frame');
 const seo = require('openvibe-shared/seo');
 const social = require('openvibe-shared/social');
 const { TWIN_PATH_RE } = require('../agent-pages');
@@ -204,8 +205,7 @@ ${[...new Set(['showcase.css', 'kit.css', 'kit-data.css', ...styles])].map((name
 <script src="${ovServe.url('footer.js')}" defer></script>
 </head>
 <body>
-<div id="navbar-mount"></div>
-<noscript><nav class="ore" style="padding:8px 16px"><a href="/">OpenRestream</a> · <a href="/streams">Streams</a> · <a href="/sessions">Sessions</a> · ${user ? '<a href="/auth/logout">Sign out</a>' : '<a href="/auth/login">Sign in</a>'}</nav></noscript>
+${frame.serverNav({ name: SITE, service: 'openre', home: '/', links: nav.links })}
 <main id="main" class="ore">
 ${body}
 </main>
