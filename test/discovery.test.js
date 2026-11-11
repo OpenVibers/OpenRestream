@@ -109,6 +109,11 @@ t('the front page leads with open restreaming, links to Live for browser go-live
         const r = await request(api.base, 'GET', '/');
         assert.strictEqual(r.status, 200);
         assert.match(r.text, /<h1>Go live once\. Stream everywhere\.<\/h1>/);
+        // The first HTML carries the site's navigation, not only the scripts that draw it.
+        const serverNav = /<div id="navbar-mount"><nav class="openvibe-navbar"[^>]*data-ov-server-nav="true"[\s\S]*?<\/nav><\/div>/.exec(r.text);
+        assert.ok(serverNav, 'the first HTML has the server navigation');
+        assert.match(serverNav[0], /href="\/streams"[^>]*>Streams</);
+        assert.match(serverNav[0], /href="\/go-live"[^>]*>Go live</);
         assert.match(r.text, /ovk-page-head/);
         // The hero's signal flow (11-07): every platform with its own switch, the count by CSS, no script needed.
         const flow = (/<div class="ore-flow"[\s\S]*?<\/ul>/.exec(r.text) || [''])[0];
