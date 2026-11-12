@@ -11,7 +11,7 @@ const t = suite('asset-cache');
 
 t('the module is the only source of the asset/HTML policy values', () => {
     assert.strictEqual(cache.assetHeaders('theme-loader.js?v=deadbeefdeadbeef', { hashed: true }), 'public, max-age=31536000, immutable');
-    assert.strictEqual(cache.assetHeaders('theme-loader.js?v=deadbeefdeadbeef', { hashed: false }), 'public, max-age=300, stale-while-revalidate=86400');
+    assert.strictEqual(cache.assetHeaders('theme-loader.js?v=deadbeefdeadbeef', { hashed: false }), 'public, max-age=300, stale-while-revalidate=300');
     assert.strictEqual(cache.htmlHeaders({ private: true }), 'private, no-store');
     assert.strictEqual(cache.htmlHeaders(), 'public, max-age=120, stale-while-revalidate=3600');
 });
