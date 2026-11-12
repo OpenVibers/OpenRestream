@@ -44,7 +44,7 @@ main.ore .sc-hero,main.ore .sc-sec,main.ore .sc-cta{padding-left:0;padding-right
 .ore-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .ore-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:14px;border:1px solid var(--ore-line);color:var(--ore-text)!important;font-weight:750;text-decoration:none;transition:transform .15s,border-color .15s}
 .ore-btn:hover{border-color:color-mix(in srgb,var(--accent,#3b82f6) 55%,var(--ore-line));transform:translateY(-1px)}
-.ore-btn-primary{background:var(--accent,#3b82f6);border-color:transparent;color:var(--on-accent,#fff)!important;box-shadow:0 12px 30px -14px var(--accent,#3b82f6)}
+.ore-btn-primary{background:var(--accent-strong,#2563eb);border-color:transparent;color:var(--on-accent-strong,#fff)!important;box-shadow:0 12px 30px -14px var(--accent,#3b82f6)}
 .ore-note{margin:14px 0 0;font-size:.86rem;color:var(--ore-muted)}
 .ore-flow{position:relative;display:grid;grid-template-columns:minmax(0,104px) 22px minmax(0,118px) minmax(230px,1fr);align-items:center;gap:0;padding:22px;border:1px solid var(--ore-line);border-radius:24px;background:radial-gradient(120% 120% at 0% 50%,color-mix(in srgb,var(--accent,#3b82f6) 14%,transparent),transparent 60%),var(--ore-panel);counter-reset:ore-on}
 .ore-src,.ore-hub{display:grid;justify-items:center;gap:3px;text-align:center;padding:12px 8px;border-radius:18px;background:var(--ore-bg);border:1px solid var(--ore-line);min-width:0}
