@@ -10,7 +10,7 @@
   "domain": "openre.stream",
   "contracts": "openvibe-contracts v0.419.0",
   "sdk": "openvibe-sdk v0.172.0",
-  "shared": "openvibe-shared v4.256.0",
+  "shared": "openvibe-shared v4.259.0",
   "protocols": {
     "rtmp": "ingest ported (openre-rtmp-ingest)",
     "restream": "RTMP source to RTMP/RTMPS/SRT destinations ported (openre-restream-worker)",
@@ -48,5 +48,5 @@
     "restore-drill read-only mode",
     "per-actor limits (openvibe-sdk/limits)"
   ],
-  "updated": "2026-11-14"
+  "updated": "2026-11-15"
 }
