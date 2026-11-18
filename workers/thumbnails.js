@@ -45,7 +45,7 @@ function createThumbnailer({ config, log = console, spawnImpl = spawn, media }) 
         try {
             const r = await media.uploadObject({
                 namespace: cfg.namespace,
-                kind: 'image',
+                kind: 'thumbnail',   // Media's object kinds: vod, clip, file, thumbnail, screenshot, avatar, asset ('image' was refused, 2026-11-18)
                 visibility: 'public',
                 mimeType: 'image/jpeg',
                 filename: `openre-${sessionId}.jpg`,
