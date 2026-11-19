@@ -116,12 +116,16 @@ t('setup: a real worker generation with mediasoup', async () => {
     assert.ok(worker.endpoints().egressPort > 0, 'the loopback egress endpoint is published');
 });
 
+// The client also offers a loopback host candidate: the server announces 127.0.0.1, and a machine with only loopback
+// (our own CI's sandbox, 2026-11-19: no network in the test phase) has no other interface to gather from.
+const CLIENT_PC = { iceAdditionalHostAddresses: ['127.0.0.1'] };
+
 t('a WHIP offer is answered, goes live on ICE, and a PlainRTP egress receives its RTP', async () => {
     const created = await rt.store.definitions.create({ owner_subject: OWNER, protocols: ['webrtc'], recording_mode: 'vod', title: 'WebRTC A' });
     defA = created.definition;
     keyA = created.key.key;
 
-    const pc = new werift.RTCPeerConnection({});
+    const pc = new werift.RTCPeerConnection(CLIENT_PC);
     const track = new werift.MediaStreamTrack({ kind: 'video' });
     pc.addTransceiver(track, { direction: 'sendonly' });
     const offer = await pc.createOffer();
@@ -318,7 +322,7 @@ t('admission refuses a bad key and a wrong-protocol key', async () => {
 
 t('a WHIP resource created with a Bearer needs it again to be deleted', async () => {
     const created = await rt.store.definitions.create({ owner_subject: OWNER, protocols: ['webrtc'] });
-    const pc = new werift.RTCPeerConnection({});
+    const pc = new werift.RTCPeerConnection(CLIENT_PC);
     pc.addTransceiver(new werift.MediaStreamTrack({ kind: 'video' }), { direction: 'sendonly' });
     await pc.setLocalDescription(await pc.createOffer());
     const auth = { authorization: `Bearer ${created.key.key}` };
