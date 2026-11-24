@@ -16,6 +16,11 @@ t('session scope and new tabs retain owner boundaries', async () => {
             assert.ok(r.text.includes('"appBar":true'), path);
             assert.ok(!r.text.includes('Private other broadcast'), path);
         }
+        // Signed out: Go live (in the menu) is a real page that says what it is for, 200 and noindex; the rest 401.
+        const guest = await request(api.base, 'GET', '/go-live', {});
+        assert.strictEqual(guest.status, 200, 'Go live answers a guest');
+        assert.ok(/reach every place at the same time/.test(guest.text) && /noindex/.test(guest.text), 'saying what it does, out of the index');
+        assert.strictEqual((await request(api.base, 'GET', '/streams', {})).status, 401, 'a private page keeps its 401');
         const ordinary = await request(api.base, 'GET', '/sessions?all=1', { cookie });
         assert.ok(!ordinary.text.includes('Session owner'));
         assert.ok(ordinary.text.includes('Your restream sessions show here: each time you go live, where it went and how it did'));
