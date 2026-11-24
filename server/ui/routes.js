@@ -82,12 +82,14 @@ function createUiRouter({ rt, auth, limits = null, liveLink = null }) {
     const csrfField = (req) => `<input type="hidden" name="_csrf" value="${esc(csrfFor(req.caller.token))}">`;
     const form = (req, action, inner, { cls = '', confirm } = {}) => `<form method="post" action="${esc(action)}" class="${cls}"${confirm ? ` onsubmit="return confirm('${esc(confirm)}')"` : ''}>${csrfField(req)}${inner}</form>`;
 
-    function needUser(req, res) {
+    // `about`: one line on what the page does; a page the menus link to (Go live) answers a signed-out visitor and a
+    // crawler with it, 200 and noindex (the owner, 11-21: a sign-in page is a real page, not a 401). The rest 401.
+    function needUser(req, res, about = '') {
         if (req.caller.kind === 'user' && req.caller.subject) return true;
         page(req, res, {
             title: 'Sign in', canonicalPath: req.path,
-            body: `${kit.pageHead({ title: 'Sign in', icon: 'user', back: { href: '/', label: 'Home' } })}<p>OpenRestream uses your OpenVibe account.</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
-        }, 401);
+            body: `${kit.pageHead({ title: 'Sign in', icon: 'user', back: { href: '/', label: 'Home' } })}${about ? `<p>${esc(about)}</p>` : ''}<p>OpenRestream uses your OpenVibe account.</p><p><a class="sc-btn sc-primary" href="/auth/login?next=${encodeURIComponent(req.originalUrl)}">Sign in with OpenVibe</a></p>`,
+        }, about ? 200 : 401);
         return false;
     }
 
@@ -347,7 +349,7 @@ ${liveNote(live)}${recordNote(definition)}
         page(req, res, { title: 'Destinations', canonicalPath: '/destinations', body: kit.pageHead({ title: 'Destinations', icon: 'link', back: { href: '/', label: 'Home' }, lede: 'Every place your streams go.', actions: [{ href: '/streams', icon: 'plus', label: 'Add a destination' }] }) + (rows.length ? kit.list(rows) : kit.empty({ icon: 'link', title: 'Choose your destinations', text: 'Open a stream to connect Twitch, YouTube, Kick or your own server.', action: { href: '/streams', icon: 'plus', label: 'Choose a stream' } })) });
     });
     router.get('/go-live', async (req, res) => {
-        if (!needUser(req, res)) return;
+        if (!needUser(req, res, 'Go live once and reach every place at the same time: OpenRestream sends your stream from OBS or your browser to YouTube, Twitch, Kick and any RTMP server you add.')) return;
         const definitions = await store.definitions.list({ owner_subject: req.caller.subject });
         page(req, res, { title: 'Go live', canonicalPath: '/go-live', body: kit.pageHead({ title: 'Go live', icon: 'live', back: { href: '/', label: 'Home' }, lede: 'Choose your encoder, check your destinations and start broadcasting.' }) + kit.section({ title: 'From your browser', icon: 'video', body: kit.empty({ icon: 'video', text: 'Use your camera or share your screen on OpenVibe Live.', action: { href: config.liveUrl + '/broadcast', icon: 'live', label: 'Open the studio' } }) }) + kit.section({ title: 'From OBS or an encoder', icon: 'live', body: definitions.length ? await streamTable(definitions) : cards.emptyStreams() }) });
     });
