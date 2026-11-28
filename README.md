@@ -318,5 +318,5 @@ Part of the [OpenVibe network](https://openvibe.network). Built in the open by [
 <!-- versions:start -->
 - openvibe-contracts: v0.449.0
 - openvibe-sdk: v0.191.0
-- openvibe-shared: v4.337.0
+- openvibe-shared: v4.340.0
 <!-- versions:end -->
